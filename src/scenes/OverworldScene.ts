@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { createRetroTextStyle, createRetroUITextStyle } from '../utils/text';
 
 export class OverworldScene extends Phaser.Scene {
   constructor() {
@@ -19,19 +20,17 @@ export class OverworldScene extends Phaser.Scene {
     bg.fillStyle(0xd4a373, 1);
     bg.fillRect(cx - 16, 0, 32, height);
 
-    this.add.text(cx, cy - 20, 'OVERWORLD GROVE', {
-      fontFamily: 'monospace',
-      fontSize: '14px',
+    this.add.text(cx, cy - 20, 'OVERWORLD GROVE', createRetroTextStyle({
+      fontSize: '12px',
       fontStyle: 'bold',
       color: '#ffffff',
       stroke: '#081c15',
       strokeThickness: 3,
-    }).setOrigin(0.5);
+    })).setOrigin(0.5);
 
-    this.add.text(cx, cy + 10, 'Ready for Phase 2: Player & Tilemap', {
-      fontFamily: 'monospace',
+    this.add.text(cx, cy + 10, 'READY FOR TICKET 02 / 03', createRetroUITextStyle({
       fontSize: '8px',
       color: '#d8f3dc',
-    }).setOrigin(0.5);
+    })).setOrigin(0.5);
   }
 }

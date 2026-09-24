@@ -4,6 +4,9 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><polygon points='8,1 15,14 1,14' fill='%23ffd700'/></svg>" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet" />
     <title>Zelda: Arcade Adventure</title>
     <style>
       * {
@@ -19,8 +22,11 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        font-family: 'Courier New', Courier, monospace;
+        font-family: 'Press Start 2P', monospace;
         color: #ffffff;
+        -webkit-font-smoothing: none;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: pixelated;
       }
       #game-container {
         width: 100vw;

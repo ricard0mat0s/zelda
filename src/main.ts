@@ -4,7 +4,15 @@ import { BootScene } from './scenes/BootScene';
 import { TitleScene } from './scenes/TitleScene';
 import { OverworldScene } from './scenes/OverworldScene';
 
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', async () => {
+  if (document.fonts) {
+    try {
+      await document.fonts.ready;
+    } catch {
+      // Fallback gracefully if fonts fail to load
+    }
+  }
   const config = createPhaserConfig([BootScene, TitleScene, OverworldScene]);
   new Phaser.Game(config);
 });
+
