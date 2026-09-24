@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { createRetroTextStyle } from '../utils/text';
+import { AudioSystem } from '../systems/AudioSystem';
 
 export class TitleScene extends Phaser.Scene {
   private spaceKey?: Phaser.Input.Keyboard.Key;
@@ -94,6 +95,7 @@ export class TitleScene extends Phaser.Scene {
 
   private startGame(): void {
     this.isStarting = true;
+    AudioSystem.getInstance().playGameStart();
     this.cameras.main.fade(300, 0, 0, 0, false, (_camera: Phaser.Cameras.Scene2D.Camera, progress: number) => {
       if (progress === 1) {
         this.scene.start('OverworldScene');
