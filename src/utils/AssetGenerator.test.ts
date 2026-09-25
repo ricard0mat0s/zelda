@@ -3,7 +3,7 @@ import { ASSET_DEFINITIONS } from './AssetGenerator';
 
 describe('AssetGenerator Pixel Definitions', () => {
   it('defines all required tiles as 16x16 pixel grids', () => {
-    const tiles = ['grass', 'path', 'tree', 'water', 'stone_wall'] as const;
+    const tiles = ['grass', 'path', 'tree', 'water', 'stone_wall', 'heart_full', 'heart_half', 'heart_empty'] as const;
     for (const key of tiles) {
       const def = ASSET_DEFINITIONS[key];
       expect(def).toBeDefined();

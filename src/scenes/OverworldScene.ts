@@ -35,6 +35,9 @@ export class OverworldScene extends Phaser.Scene {
     const spawnY = 280;
     this.player = new Player(this, spawnX, spawnY);
 
+    // Launch parallel HUD overlay with player's health model
+    this.scene.launch('UIScene', { health: this.player.health });
+
     // Register collisions
     this.physics.add.collider(this.player, this.obstacles);
 
@@ -150,9 +153,9 @@ export class OverworldScene extends Phaser.Scene {
     });
   }
 
-  update(): void {
+  update(time: number, delta: number): void {
     if (this.player) {
-      this.player.update();
+      this.player.update(time, delta);
     }
   }
 }
