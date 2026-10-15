@@ -4,10 +4,10 @@
 
 **Blocked by:** 02 (Procedural Web Audio Engine), 04 (Pure Domain HealthSystem & Retro Hearts HUD)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Player starts unarmed and cannot attack until obtaining the sword.
-- [ ] Approaching the shrine pedestal and pressing `ENTER` or `E` opens a retro dialogue box with typewriter text.
-- [ ] Accepting grants the sword and updates inventory state.
-- [ ] Pressing `SPACE` or `Z` performs a sword slash animation in the current facing direction with slash sound effect.
-- [ ] Attack hitbox is active only during the swing animation frames with a short cooldown.
+- [x] Player starts unarmed and cannot attack until obtaining the sword.
+- [x] Approaching the shrine pedestal and pressing `ENTER` or `E` opens a retro dialogue box with typewriter text.
+- [x] Accepting grants the sword and updates inventory state.
+- [x] Pressing `SPACE` or `Z` performs a sword slash animation in the current facing direction with slash sound effect.
+- [x] Attack hitbox is active only during the swing animation frames with a short cooldown.

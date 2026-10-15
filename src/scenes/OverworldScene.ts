@@ -4,9 +4,20 @@ import { Player } from '../entities/Player';
 import { createRetroTextStyle, createRetroUITextStyle } from '../utils/text';
 import { MAP_CONFIG } from '../constants/map';
 
+import { DialogueBox } from '../ui/DialogueBox';
+import { AudioSystem } from '../systems/AudioSystem';
+
 export class OverworldScene extends Phaser.Scene {
   public player!: Player;
+  public shrinePedestal!: Phaser.Physics.Arcade.Sprite;
+  public dialogueBox!: DialogueBox;
   private obstacles!: Phaser.Physics.Arcade.StaticGroup;
+  private interactPrompt!: Phaser.GameObjects.Text;
+  private interactKeys?: {
+    e: Phaser.Input.Keyboard.Key;
+    enter: Phaser.Input.Keyboard.Key;
+    space: Phaser.Input.Keyboard.Key;
+  };
 
   public static readonly MAP_COLS = MAP_CONFIG.COLS;
   public static readonly MAP_ROWS = MAP_CONFIG.ROWS;
@@ -34,6 +45,30 @@ export class OverworldScene extends Phaser.Scene {
     const spawnX = 200;
     const spawnY = 280;
     this.player = new Player(this, spawnX, spawnY);
+
+    // Elder Shrine Pedestal holding the Hero's Sword
+    this.shrinePedestal = this.physics.add.staticSprite(200, 180, 'shrine_pedestal_sword');
+    this.physics.add.collider(this.player, this.shrinePedestal);
+
+    // Floating interaction prompt above pedestal
+    this.interactPrompt = this.add.text(200, 162, '[E] EXAMINE', createRetroUITextStyle({
+      fontSize: '7px',
+      color: '#ffd700',
+      stroke: '#0b0c10',
+      strokeThickness: 2,
+    })).setOrigin(0.5).setVisible(false).setDepth(20);
+
+    // Dialogue Box container
+    this.dialogueBox = new DialogueBox(this);
+
+    // Keyboard controls for interaction
+    if (this.input.keyboard) {
+      this.interactKeys = {
+        e: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E),
+        enter: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER),
+        space: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE),
+      };
+    }
 
     // Launch parallel HUD overlay with player's health model
     this.scene.launch('UIScene', { health: this.player.health });
@@ -153,7 +188,79 @@ export class OverworldScene extends Phaser.Scene {
     });
   }
 
+  public showNotification(message: string): void {
+    const banner = this.add.text(160, 60, message, createRetroTextStyle({
+      fontSize: '9px',
+      color: '#00f5d4',
+      stroke: '#0b0c10',
+      strokeThickness: 3,
+    })).setOrigin(0.5).setScrollFactor(0).setDepth(1001);
+
+    this.tweens.add({
+      targets: banner,
+      y: 50,
+      alpha: 0,
+      delay: 1800,
+      duration: 600,
+      onComplete: () => {
+        banner.destroy();
+      },
+    });
+  }
+
   update(time: number, delta: number): void {
+    if (this.dialogueBox) {
+      this.dialogueBox.update(time, delta);
+    }
+
+    if (this.player && this.shrinePedestal) {
+      const dist = Phaser.Math.Distance.Between(
+        this.player.x,
+        this.player.y,
+        this.shrinePedestal.x,
+        this.shrinePedestal.y
+      );
+      const inRange = dist < 26;
+
+      if (inRange && !this.dialogueBox.isOpen()) {
+        this.interactPrompt.setVisible(true);
+      } else {
+        this.interactPrompt.setVisible(false);
+      }
+
+      if (this.interactKeys) {
+        const interactJustDown =
+          Phaser.Input.Keyboard.JustDown(this.interactKeys.e) ||
+          Phaser.Input.Keyboard.JustDown(this.interactKeys.enter);
+
+        if (this.dialogueBox.isOpen()) {
+          const advanceKey =
+            interactJustDown || Phaser.Input.Keyboard.JustDown(this.interactKeys.space);
+          if (advanceKey) {
+            const closed = this.dialogueBox.advance();
+            if (closed) {
+              this.player.canMove = true;
+            }
+          }
+        } else if (inRange && interactJustDown) {
+          this.player.canMove = false;
+          this.player.setVelocity(0, 0);
+          this.interactPrompt.setVisible(false);
+
+          if (!this.player.inventory.hasSword) {
+            this.dialogueBox.show("IT'S DANGEROUS TO GO ALONE!\nTAKE THIS.", () => {
+              this.player.inventory.obtainSword();
+              this.shrinePedestal.setTexture('shrine_pedestal_empty');
+              AudioSystem.getInstance().playSecretChime();
+              this.showNotification("HERO'S SWORD ACQUIRED!");
+            });
+          } else {
+            this.dialogueBox.show('THE ANCIENT PEDESTAL IS EMPTY.');
+          }
+        }
+      }
+    }
+
     if (this.player) {
       this.player.update(time, delta);
     }
