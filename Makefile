@@ -38,7 +38,9 @@ test: $(TEST_TARGET)
 	@echo "Executing tests..."
 	@./$(TEST_TARGET)
 
-$(TEST_TARGET): $(TEST_SRCS)
+TEST_CORE_SRCS = src/core/SoundGenerator.cpp src/render/GeneratedAssets.cpp
+
+$(TEST_TARGET): $(TEST_SRCS) $(TEST_CORE_SRCS)
 	@mkdir -p $(BIN_DIR)
 	$(CXX) $(CXXFLAGS) -Isrc -Ivendor $^ -o $@
 

@@ -1,6 +1,8 @@
 #include "app/GameApp.hpp"
 #include "raylib.h"
 #include "core/GameConfig.hpp"
+#include "render/AssetManager.hpp"
+#include "render/AudioPlayer.hpp"
 #include <iostream>
 
 namespace App {
@@ -22,6 +24,12 @@ bool GameApp::init() {
     InitAudioDevice();
 
     m_canvas.init();
+
+    // Initialize asset and audio subsystems
+    Render::AssetManager::instance().init();
+    Render::AssetManager::instance().exportSpritesToDisk("assets/sprites");
+    Render::AudioPlayer::instance().init();
+
     m_state = Core::GameState::Title;
     m_running = true;
 
@@ -30,6 +38,8 @@ bool GameApp::init() {
 
 void GameApp::close() {
     if (m_running) {
+        Render::AudioPlayer::instance().cleanup();
+        Render::AssetManager::instance().cleanup();
         m_canvas.close();
         CloseAudioDevice();
         CloseWindow();

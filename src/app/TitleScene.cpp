@@ -1,6 +1,7 @@
 #include "app/TitleScene.hpp"
 #include "raylib.h"
 #include "core/GameConfig.hpp"
+#include "render/AudioPlayer.hpp"
 #include <cmath>
 
 namespace App {
@@ -26,6 +27,7 @@ void TitleScene::update(float dt) {
 
         if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_ENTER)) {
             m_startRequested = true;
+            Render::AudioPlayer::instance().playGameStart();
         }
     } else {
         m_fadeProgress += dt * 3.0f; // Quick fade out over ~0.33s
