@@ -5,6 +5,9 @@
 #include "../src/core/types.hpp"
 #include "../src/core/GameConfig.hpp"
 #include "../src/core/SoundGenerator.hpp"
+#include "../src/core/Movement.hpp"
+#include "../src/core/MapData.hpp"
+#include "../src/core/Player.hpp"
 #include "../src/render/GeneratedAssets.hpp"
 
 using namespace Core;
@@ -130,6 +133,104 @@ void test_generated_assets() {
     testsPassed++;
 }
 
+void test_movement_math() {
+    // Cardinal moving down
+    MovementInput inDown{false, true, false, false};
+    auto resDown = computeMovementVelocity(inDown, Direction::Up, 100.0f);
+    TEST_ASSERT(resDown.isMoving, "Should be moving down");
+    TEST_ASSERT(resDown.facing == Direction::Down, "Facing should be Down");
+    TEST_ASSERT(resDown.velocity.x == 0.0f && resDown.velocity.y == 100.0f, "Velocity should be (0, 100)");
+
+    // Diagonal moving up-right
+    MovementInput inDiag{true, false, false, true};
+    auto resDiag = computeMovementVelocity(inDiag, Direction::Down, 100.0f);
+    TEST_ASSERT(resDiag.isMoving, "Should be moving diagonally");
+    TEST_ASSERT(resDiag.facing == Direction::Up, "Vertical direction takes precedence or valid facing");
+    float expectedDiag = 100.0f * 0.70710678f;
+    TEST_ASSERT(std::abs(resDiag.velocity.x - expectedDiag) < 0.01f, "Diagonal X should be normalized");
+    TEST_ASSERT(std::abs(resDiag.velocity.y - (-expectedDiag)) < 0.01f, "Diagonal Y should be normalized");
+
+    // Standing still retains current facing
+    MovementInput inNone{false, false, false, false};
+    auto resNone = computeMovementVelocity(inNone, Direction::Left, 100.0f);
+    TEST_ASSERT(!resNone.isMoving, "Should not be moving");
+    TEST_ASSERT(resNone.facing == Direction::Left, "Facing should be retained when stopped");
+    TEST_ASSERT(resNone.velocity.x == 0.0f && resNone.velocity.y == 0.0f, "Velocity should be zero");
+
+    // Opposing inputs cancel
+    MovementInput inCancel{true, true, true, true};
+    auto resCancel = computeMovementVelocity(inCancel, Direction::Right, 100.0f);
+    TEST_ASSERT(!resCancel.isMoving, "Opposing inputs should cancel out");
+
+    testsPassed++;
+}
+
+void test_map_data() {
+    MapData map;
+    TEST_ASSERT(map.isSolid(0, 0), "Perimeter (0, 0) must be solid");
+    TEST_ASSERT(map.isSolid(1, 1), "Perimeter (1, 1) must be solid");
+    TEST_ASSERT(map.isSolid(38, 28), "Perimeter (38, 28) must be solid");
+    TEST_ASSERT(map.getObstacle(0, 0) == ObstacleTile::Tree, "Perimeter should be Tree");
+
+    // Pond
+    TEST_ASSERT(map.isSolid(26, 4), "Pond (26, 4) must be solid water");
+    TEST_ASSERT(map.getObstacle(26, 4) == ObstacleTile::Water, "(26, 4) should be Water");
+
+    // Clear path
+    TEST_ASSERT(!map.isSolid(12, 17), "Path (12, 17) should not be solid");
+    TEST_ASSERT(map.getGround(12, 17) == GroundTile::Path, "(12, 17) should be Path");
+
+    // Out of bounds is solid
+    TEST_ASSERT(map.isSolid(-1, 0), "Negative coords must be solid");
+    TEST_ASSERT(map.isSolid(100, 100), "Coords > bounds must be solid");
+
+    // Rect collision
+    Rect clearBox(12.0f * 16.0f, 17.0f * 16.0f, 16.0f, 16.0f);
+    TEST_ASSERT(!map.checkRectCollision(clearBox), "Open path tile must not trigger collision");
+
+    Rect solidBox(0.0f, 0.0f, 16.0f, 16.0f);
+    TEST_ASSERT(map.checkRectCollision(solidBox), "Solid perimeter tile must trigger collision");
+
+    testsPassed++;
+}
+
+void test_player_simulation() {
+    MapData map;
+    Player player(200.0f, 280.0f);
+
+    TEST_ASSERT(player.getPosition() == Vec2(200.0f, 280.0f), "Initial position must be (200, 280)");
+    TEST_ASSERT(player.getFacing() == Direction::Down, "Initial facing must be Down");
+    TEST_ASSERT(player.getTextureName() == "hero_down_0", "Initial texture must be hero_down_0");
+
+    // Move player right on open path for 0.1s
+    MovementInput inRight{false, false, false, true};
+    player.update(0.1f, inRight, map);
+    TEST_ASSERT(player.getPosition().x > 200.0f, "Player should have moved right");
+    TEST_ASSERT(player.getFacing() == Direction::Right, "Facing should be Right");
+
+    // Step animation toggles after FRAME_DURATION (0.15s)
+    player.update(0.1f, inRight, map);
+    TEST_ASSERT(player.getTextureName() == "hero_right_1", "Texture should advance to frame 1 while moving");
+
+    // Stop moving: resets to frame 0
+    MovementInput inNone{false, false, false, false};
+    player.update(0.01f, inNone, map);
+    TEST_ASSERT(!player.isMoving(), "Player should be idle");
+    TEST_ASSERT(player.getTextureName() == "hero_right_0", "Texture should reset to frame 0 when idle");
+
+    // Collision stop: place player near left tree border (x = 32)
+    player.setPosition(Vec2(33.0f, 200.0f));
+    MovementInput inLeft{false, false, true, false};
+    // Move left towards solid tree border
+    for (int i = 0; i < 20; ++i) {
+        player.update(0.05f, inLeft, map);
+    }
+    // Player hitbox width=12, x=2, solid trees at x < 32 => player cannot penetrate tree
+    TEST_ASSERT(player.getWorldHitbox().left() >= 32.0f, "Player must not penetrate solid trees");
+
+    testsPassed++;
+}
+
 int main() {
     std::cout << "=== Running Headless Core Tests ===" << std::endl;
     test_vector_math();
@@ -138,6 +239,9 @@ int main() {
     test_game_config();
     test_sound_generator();
     test_generated_assets();
+    test_movement_math();
+    test_map_data();
+    test_player_simulation();
 
     std::cout << "Tests Passed: " << testsPassed << " | Tests Failed: " << testsFailed << std::endl;
     return testsFailed == 0 ? 0 : 1;

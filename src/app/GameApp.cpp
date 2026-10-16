@@ -56,10 +56,10 @@ void GameApp::update(float dt) {
             }
             break;
         case Core::GameState::Overworld:
-            // Will run Overworld logic (Milestone 3)
-            // Allow ESC or Backspace to return to Title for testing
+            m_overworldScene.update(dt);
             if (IsKeyPressed(KEY_BACKSPACE)) {
                 m_titleScene.reset();
+                m_overworldScene.reset();
                 m_state = Core::GameState::Title;
             }
             break;
@@ -76,10 +76,7 @@ void GameApp::render() {
             m_titleScene.render();
             break;
         case Core::GameState::Overworld:
-            // Placeholder overworld scene until Milestone 3
-            DrawRectangle(0, 0, Core::GameConfig::VIRTUAL_WIDTH, Core::GameConfig::VIRTUAL_HEIGHT, Color{45, 106, 79, 255}); // Forest green
-            DrawText("OVERWORLD SCENE", 100, 100, 10, WHITE);
-            DrawText("Press BACKSPACE to return to Title", 50, 130, 10, RAYWHITE);
+            m_overworldScene.render();
             break;
         default:
             break;

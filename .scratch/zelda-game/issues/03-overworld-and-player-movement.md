@@ -1,21 +1,23 @@
 # 03: Overworld Map & 4-Directional Player Movement
 
-**What to build:** An explorable 40x30 tile overworld with procedural 16x16 pixel retro graphics (forest glade, stone paths, trees, water), solid obstacle collisions, camera following the hero within map boundaries, and 4-directional walking controls.
+**What to build:** An explorable 40x30 tile overworld with 16x16 pixel retro graphics (forest glade, stone paths, perimeter trees, water pond, ruins), solid obstacle collisions, smooth 2D camera following Link within clamped boundaries, and 4-directional walking controls.
 
-**Blocked by:** 01 (Project Scaffold, Vitest & Retro Title Screen)
+**Blocked by:** 01 (Project Scaffold, Raylib C++ & Retro Title Screen), 02 (Asset Pipeline & Audio)
 
 **Status:** resolved
 
 - [x] Hero moves smoothly in 4 directions using `W, A, S, D` or `Arrow Keys` with idle and walking animation frames.
-- [x] Perimeter trees and water obstruct movement via solid arcade physics collisions.
-- [x] Smooth camera tracks player and remains clamped strictly within the 40x30 map borders.
-- [x] Integer pixel scaling preserves sharp 16x16 pixel art without blurring.
+- [x] Diagonal movement velocity is normalized by $\approx 0.7071$ so diagonal speed matches cardinal speed.
+- [x] Perimeter trees, pond water, and stone walls obstruct movement via solid bounding box collisions and sliding resolution.
+- [x] Smooth 2D camera tracks player and remains clamped strictly within the 40x30 map borders (640x480 world).
+- [x] Location banner "HYLIA GLADE" displays on entry and fades out over 3.5 seconds.
+- [x] Headless unit tests verify movement math, map solids, and collision sliding.
 
 ## Resolution Summary
 
-- Created `src/entities/movement.ts` with pure math `computeMovementVelocity` handling cardinal directions, diagonal normalization, and facing persistence. Verified with 4 unit tests in `src/entities/movement.test.ts`.
-- Created `src/utils/AssetGenerator.ts` generating authentic procedural 16x16 pixel art textures (`grass`, `path`, `tree`, `water`, `stone_wall`, and 8 Hero walk/idle frames across 4 directions). Verified with 3 unit tests in `src/utils/AssetGenerator.test.ts`.
-- Created `src/constants/map.ts` defining 40x30 tile world dimensions (640x480) and 16px tile scale. Verified with unit tests in `src/constants/map.test.ts`.
-- Implemented `Player` arcade physics entity in `src/entities/Player.ts` with WASD/Arrow input, walk animations, and feet-clamped depth-sorted hitbox.
-- Built `OverworldScene` in `src/scenes/OverworldScene.ts` featuring full 40x30 grass base, winding stone paths, obstacle collisions (perimeter trees, water pond, ruins), smooth camera tracking, and location banner.
-- Verified: `npx vitest run` (19/19 passing across 7 suites), `npx tsc --noEmit` (clean), and `npm run build` (successful).
+- Created `src/core/Movement.hpp` and `src/core/Movement.cpp` implementing normalized diagonal velocity and persistent facing directions.
+- Created `src/core/MapData.hpp` and `src/core/MapData.cpp` defining 40x30 world grid (640x480), perimeter tree barriers, water pond, ruins, paths, and solid sliding AABB collision resolution.
+- Created `src/core/Player.hpp` and `src/core/Player.cpp` with feet-aligned hitbox (12x10), walk cycle frame switching (0.15s), and decoupled simulation update.
+- Implemented `src/render/MapRenderer.cpp` drawing ground and obstacle layers with camera viewport culling.
+- Implemented `src/app/OverworldScene.cpp` handling WASD/Arrow controls, smooth clamped camera follow, Elder Shrine pedestal rendering, and floating location banner.
+- Verified: `make test` (9/9 passing headlessly), `make` (clean build), and live runtime verification with Raylib window.
