@@ -3,7 +3,7 @@
 
 namespace Render {
 
-static const std::array<PixelAssetData, 22> s_assets = {{
+static const std::array<PixelAssetData, 24> s_assets = {{
     {
         "grass",
         16, 16,
@@ -840,9 +840,85 @@ static const std::array<PixelAssetData, 22> s_assets = {{
             RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0},
         }
     },
+    {
+        "slime_0",
+        16, 16,
+        {
+            RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0},
+            RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0},
+            RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0},
+            RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0},
+            RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0},
+            RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0},
+            RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{11, 12, 16, 255}, RgbaColor{11, 12, 16, 255}, RgbaColor{11, 12, 16, 255},
+            RgbaColor{11, 12, 16, 255}, RgbaColor{11, 12, 16, 255}, RgbaColor{11, 12, 16, 255}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0},
+            RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{11, 12, 16, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255},
+            RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{11, 12, 16, 255}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0},
+            RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{11, 12, 16, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{149, 213, 178, 255}, RgbaColor{149, 213, 178, 255},
+            RgbaColor{149, 213, 178, 255}, RgbaColor{149, 213, 178, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{11, 12, 16, 255}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0},
+            RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{11, 12, 16, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{149, 213, 178, 255}, RgbaColor{255, 255, 255, 255}, RgbaColor{255, 255, 255, 255},
+            RgbaColor{149, 213, 178, 255}, RgbaColor{82, 183, 136, 255}, RgbaColor{255, 255, 255, 255}, RgbaColor{255, 255, 255, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{11, 12, 16, 255}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0},
+            RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{11, 12, 16, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{149, 213, 178, 255}, RgbaColor{8, 28, 21, 255}, RgbaColor{8, 28, 21, 255},
+            RgbaColor{149, 213, 178, 255}, RgbaColor{82, 183, 136, 255}, RgbaColor{8, 28, 21, 255}, RgbaColor{8, 28, 21, 255}, RgbaColor{149, 213, 178, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{11, 12, 16, 255}, RgbaColor{0, 0, 0, 0},
+            RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{11, 12, 16, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255},
+            RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{11, 12, 16, 255},
+            RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{11, 12, 16, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255},
+            RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{11, 12, 16, 255},
+            RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{11, 12, 16, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{27, 67, 50, 255}, RgbaColor{27, 67, 50, 255}, RgbaColor{27, 67, 50, 255},
+            RgbaColor{27, 67, 50, 255}, RgbaColor{27, 67, 50, 255}, RgbaColor{27, 67, 50, 255}, RgbaColor{27, 67, 50, 255}, RgbaColor{27, 67, 50, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{11, 12, 16, 255},
+            RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{11, 12, 16, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{27, 67, 50, 255}, RgbaColor{27, 67, 50, 255}, RgbaColor{27, 67, 50, 255}, RgbaColor{27, 67, 50, 255},
+            RgbaColor{27, 67, 50, 255}, RgbaColor{27, 67, 50, 255}, RgbaColor{27, 67, 50, 255}, RgbaColor{27, 67, 50, 255}, RgbaColor{27, 67, 50, 255}, RgbaColor{27, 67, 50, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{11, 12, 16, 255},
+            RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{11, 12, 16, 255}, RgbaColor{27, 67, 50, 255}, RgbaColor{27, 67, 50, 255}, RgbaColor{27, 67, 50, 255}, RgbaColor{27, 67, 50, 255}, RgbaColor{27, 67, 50, 255},
+            RgbaColor{27, 67, 50, 255}, RgbaColor{27, 67, 50, 255}, RgbaColor{27, 67, 50, 255}, RgbaColor{27, 67, 50, 255}, RgbaColor{27, 67, 50, 255}, RgbaColor{27, 67, 50, 255}, RgbaColor{27, 67, 50, 255}, RgbaColor{11, 12, 16, 255},
+            RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{11, 12, 16, 255}, RgbaColor{11, 12, 16, 255}, RgbaColor{11, 12, 16, 255}, RgbaColor{11, 12, 16, 255}, RgbaColor{11, 12, 16, 255}, RgbaColor{11, 12, 16, 255},
+            RgbaColor{11, 12, 16, 255}, RgbaColor{11, 12, 16, 255}, RgbaColor{11, 12, 16, 255}, RgbaColor{11, 12, 16, 255}, RgbaColor{11, 12, 16, 255}, RgbaColor{11, 12, 16, 255}, RgbaColor{11, 12, 16, 255}, RgbaColor{11, 12, 16, 255},
+            RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0},
+            RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0},
+            RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0},
+            RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0},
+        }
+    },
+    {
+        "slime_1",
+        16, 16,
+        {
+            RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0},
+            RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0},
+            RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0},
+            RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0},
+            RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{11, 12, 16, 255}, RgbaColor{11, 12, 16, 255}, RgbaColor{11, 12, 16, 255},
+            RgbaColor{11, 12, 16, 255}, RgbaColor{11, 12, 16, 255}, RgbaColor{11, 12, 16, 255}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0},
+            RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{11, 12, 16, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255},
+            RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{11, 12, 16, 255}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0},
+            RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{11, 12, 16, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{149, 213, 178, 255}, RgbaColor{149, 213, 178, 255},
+            RgbaColor{149, 213, 178, 255}, RgbaColor{149, 213, 178, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{11, 12, 16, 255}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0},
+            RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{11, 12, 16, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{149, 213, 178, 255}, RgbaColor{255, 255, 255, 255}, RgbaColor{255, 255, 255, 255},
+            RgbaColor{149, 213, 178, 255}, RgbaColor{82, 183, 136, 255}, RgbaColor{255, 255, 255, 255}, RgbaColor{255, 255, 255, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{11, 12, 16, 255}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0},
+            RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{11, 12, 16, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{149, 213, 178, 255}, RgbaColor{8, 28, 21, 255}, RgbaColor{8, 28, 21, 255},
+            RgbaColor{149, 213, 178, 255}, RgbaColor{82, 183, 136, 255}, RgbaColor{8, 28, 21, 255}, RgbaColor{8, 28, 21, 255}, RgbaColor{149, 213, 178, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{11, 12, 16, 255}, RgbaColor{0, 0, 0, 0},
+            RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{11, 12, 16, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255},
+            RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{11, 12, 16, 255}, RgbaColor{0, 0, 0, 0},
+            RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{11, 12, 16, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255},
+            RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{11, 12, 16, 255}, RgbaColor{0, 0, 0, 0},
+            RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{11, 12, 16, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{27, 67, 50, 255}, RgbaColor{27, 67, 50, 255},
+            RgbaColor{27, 67, 50, 255}, RgbaColor{27, 67, 50, 255}, RgbaColor{27, 67, 50, 255}, RgbaColor{27, 67, 50, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{11, 12, 16, 255}, RgbaColor{0, 0, 0, 0},
+            RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{11, 12, 16, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{27, 67, 50, 255}, RgbaColor{27, 67, 50, 255}, RgbaColor{27, 67, 50, 255},
+            RgbaColor{27, 67, 50, 255}, RgbaColor{27, 67, 50, 255}, RgbaColor{27, 67, 50, 255}, RgbaColor{27, 67, 50, 255}, RgbaColor{27, 67, 50, 255}, RgbaColor{45, 106, 79, 255}, RgbaColor{11, 12, 16, 255}, RgbaColor{0, 0, 0, 0},
+            RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{11, 12, 16, 255}, RgbaColor{27, 67, 50, 255}, RgbaColor{27, 67, 50, 255}, RgbaColor{27, 67, 50, 255}, RgbaColor{27, 67, 50, 255},
+            RgbaColor{27, 67, 50, 255}, RgbaColor{27, 67, 50, 255}, RgbaColor{27, 67, 50, 255}, RgbaColor{27, 67, 50, 255}, RgbaColor{27, 67, 50, 255}, RgbaColor{27, 67, 50, 255}, RgbaColor{11, 12, 16, 255}, RgbaColor{0, 0, 0, 0},
+            RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{11, 12, 16, 255}, RgbaColor{11, 12, 16, 255}, RgbaColor{11, 12, 16, 255}, RgbaColor{11, 12, 16, 255}, RgbaColor{11, 12, 16, 255},
+            RgbaColor{11, 12, 16, 255}, RgbaColor{11, 12, 16, 255}, RgbaColor{11, 12, 16, 255}, RgbaColor{11, 12, 16, 255}, RgbaColor{11, 12, 16, 255}, RgbaColor{11, 12, 16, 255}, RgbaColor{11, 12, 16, 255}, RgbaColor{0, 0, 0, 0},
+            RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0},
+            RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0},
+            RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0},
+            RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0},
+            RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0},
+            RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0}, RgbaColor{0, 0, 0, 0},
+        }
+    },
 }};
 
-const std::array<PixelAssetData, 22>& getAllGeneratedAssets() {
+const std::array<PixelAssetData, 24>& getAllGeneratedAssets() {
     return s_assets;
 }
 

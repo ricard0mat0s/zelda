@@ -20,6 +20,16 @@ void OverworldScene::reset() {
     m_bannerTimer = 0.0f;
     m_shrineHasSword = true;
 
+    // Spawn green slimes in forest clearings
+    m_slimes.clear();
+    m_slimes.emplace_back(140.0f, 200.0f);
+    m_slimes.emplace_back(270.0f, 260.0f);
+    m_slimes.emplace_back(360.0f, 180.0f);
+    m_slimes.emplace_back(180.0f, 350.0f);
+    m_slimes.emplace_back(420.0f, 250.0f);
+
+    m_itemDrops.clear();
+
     m_camera.offset = Vector2{0.0f, 0.0f};
     m_camera.target = Vector2{0.0f, 0.0f};
     m_camera.rotation = 0.0f;
@@ -89,7 +99,65 @@ void OverworldScene::update(float dt) {
 
     m_player.update(dt, input, m_map);
 
-    // 5. Camera tracking clamped to world bounds
+    // 5. Update Slimes and Combat Interactions
+    for (auto& slime : m_slimes) {
+        if (slime.isDead()) continue;
+
+        slime.update(dt, m_player.getPosition(), m_map);
+
+        // Sword collision against slime
+        if (m_player.isAttacking()) {
+            Core::Rect swordBox = m_player.getCurrentSwordHitbox();
+            if (swordBox.overlaps(slime.getHitbox())) {
+                Core::Vec2 kb = Core::calculateKnockback(m_player.getPosition(), slime.getPosition(), 150.0f);
+                if (slime.takeDamage(1, kb)) {
+                    if (slime.isDead()) {
+                        Render::AudioPlayer::instance().playEnemyDefeat();
+                        // 35% chance to drop recovery heart
+                        if ((static_cast<int>(slime.getPosition().x * 3 + slime.getPosition().y * 7) % 10) < 4) {
+                            Core::ItemDrop drop;
+                            drop.pos = slime.getPosition();
+                            drop.type = Core::ItemType::HeartRecovery;
+                            drop.active = true;
+                            m_itemDrops.push_back(drop);
+                        }
+                    } else {
+                        Render::AudioPlayer::instance().playHit();
+                    }
+                }
+            }
+        }
+
+        // Slime collision with Player
+        if (!slime.isDead() && slime.getHitbox().overlaps(m_player.getWorldHitbox())) {
+            // Check Frontal Shield Defense!
+            if (Core::isAttackBlockedByShield(m_player.getPosition(), m_player.getFacing(), slime.getPosition())) {
+                Render::AudioPlayer::instance().playHit();
+                Core::Vec2 repel = Core::calculateKnockback(m_player.getPosition(), slime.getPosition(), 90.0f);
+                slime.takeDamage(0, repel); // Push enemy back without damaging
+            } else {
+                auto res = m_player.takeDamage(1); // 1 HP (half a heart)
+                if (res.damaged) {
+                    Render::AudioPlayer::instance().playPlayerHurt();
+                }
+            }
+        }
+    }
+
+    // Update and collect Item Drops
+    for (auto& drop : m_itemDrops) {
+        if (!drop.active) continue;
+        drop.update(dt);
+        if (drop.getHitbox().overlaps(m_player.getWorldHitbox())) {
+            if (drop.type == Core::ItemType::HeartRecovery) {
+                m_player.heal(2); // 1 full heart
+                Render::AudioPlayer::instance().playSecretChime();
+                drop.active = false;
+            }
+        }
+    }
+
+    // 6. Camera tracking clamped to world bounds
     const float halfVW = Core::GameConfig::VIRTUAL_WIDTH * 0.5f;
     const float halfVH = Core::GameConfig::VIRTUAL_HEIGHT * 0.5f;
     const float maxX = static_cast<float>(Core::GameConfig::WORLD_WIDTH - Core::GameConfig::VIRTUAL_WIDTH);
@@ -102,7 +170,7 @@ void OverworldScene::update(float dt) {
     m_camera.target.x += (targetX - m_camera.target.x) * std::min(1.0f, dt * 10.0f);
     m_camera.target.y += (targetY - m_camera.target.y) * std::min(1.0f, dt * 10.0f);
 
-    // 6. Banner timer
+    // 7. Banner timer
     m_bannerTimer += dt;
 }
 
@@ -131,6 +199,22 @@ void OverworldScene::render() {
         int py = static_cast<int>(m_shrinePos.y) - 18;
         DrawText(prompt, px + 1, py + 1, 7, Color{11, 12, 16, 255});
         DrawText(prompt, px, py, 7, Color{255, 215, 0, 255});
+    }
+
+    // Render active Item Drops
+    Texture2D heartTex = assets.getTexture("heart_full");
+    for (const auto& drop : m_itemDrops) {
+        if (drop.active && !drop.isBlinking()) {
+            DrawTexture(heartTex, static_cast<int>(drop.pos.x), static_cast<int>(drop.pos.y), WHITE);
+        }
+    }
+
+    // Render Slimes
+    for (const auto& slime : m_slimes) {
+        if (slime.isDead()) continue;
+        const char* slimeTex = (slime.getAnimFrame() == 0) ? "slime_0" : "slime_1";
+        Color tint = slime.isHurt() ? Color{255, 120, 120, 255} : WHITE;
+        DrawTexture(assets.getTexture(slimeTex), static_cast<int>(slime.getPosition().x), static_cast<int>(slime.getPosition().y), tint);
     }
 
     // Render Hero sprite with invulnerability flicker

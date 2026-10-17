@@ -2,10 +2,14 @@
 
 #include "core/MapData.hpp"
 #include "core/Player.hpp"
+#include "core/Slime.hpp"
+#include "core/ItemDrop.hpp"
+#include "core/Shield.hpp"
 #include "render/MapRenderer.hpp"
 #include "render/UIRenderer.hpp"
 #include "render/DialogueBox.hpp"
 #include "raylib.h"
+#include <vector>
 
 namespace App {
 
@@ -38,6 +42,10 @@ private:
     // Shrine position and state
     Core::Vec2 m_shrinePos{200.0f, 180.0f};
     bool m_shrineHasSword = true;
+
+    // Overworld entities and drops
+    std::vector<Core::Slime> m_slimes;
+    std::vector<Core::ItemDrop> m_itemDrops;
 };
 
 } // namespace App

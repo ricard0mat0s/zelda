@@ -12,6 +12,9 @@
 #include "../src/core/Inventory.hpp"
 #include "../src/core/Typewriter.hpp"
 #include "../src/core/Combat.hpp"
+#include "../src/core/Shield.hpp"
+#include "../src/core/Slime.hpp"
+#include "../src/core/ItemDrop.hpp"
 #include "../src/render/GeneratedAssets.hpp"
 
 using namespace Core;
@@ -120,7 +123,7 @@ void test_sound_generator() {
 
 void test_generated_assets() {
     const auto& assets = Render::getAllGeneratedAssets();
-    TEST_ASSERT(assets.size() == 22, "Must contain exactly 22 procedural pixel art assets");
+    TEST_ASSERT(assets.size() == 24, "Must contain exactly 24 procedural pixel art assets");
 
     for (const auto& asset : assets) {
         TEST_ASSERT(asset.width == 16, "Asset width must be 16");
@@ -132,6 +135,8 @@ void test_generated_assets() {
     TEST_ASSERT(Render::findGeneratedAsset("heart_full") != nullptr, "heart_full must exist");
     TEST_ASSERT(Render::findGeneratedAsset("shrine_pedestal_sword") != nullptr, "shrine_pedestal_sword must exist");
     TEST_ASSERT(Render::findGeneratedAsset("slash_down") != nullptr, "slash_down must exist");
+    TEST_ASSERT(Render::findGeneratedAsset("slime_0") != nullptr, "slime_0 must exist");
+    TEST_ASSERT(Render::findGeneratedAsset("slime_1") != nullptr, "slime_1 must exist");
     TEST_ASSERT(Render::findGeneratedAsset("non_existent_sprite") == nullptr, "non_existent_sprite must return nullptr");
 
     testsPassed++;
@@ -432,6 +437,80 @@ void test_player_sword_attack() {
     testsPassed++;
 }
 
+void test_shield_defense() {
+    Vec2 playerPos(100.0f, 100.0f);
+
+    // Facing Down: threats from below are blocked, threats from behind or side are not
+    TEST_ASSERT(isAttackBlockedByShield(playerPos, Direction::Down, Vec2(100.0f, 120.0f)), "Head-on threat from below must be blocked");
+    TEST_ASSERT(isAttackBlockedByShield(playerPos, Direction::Down, Vec2(110.0f, 120.0f)), "Slightly diagonal threat from below must be blocked");
+    TEST_ASSERT(!isAttackBlockedByShield(playerPos, Direction::Down, Vec2(100.0f, 80.0f)), "Threat from behind (above) must NOT be blocked");
+    TEST_ASSERT(!isAttackBlockedByShield(playerPos, Direction::Down, Vec2(80.0f, 100.0f)), "Threat from left side must NOT be blocked");
+
+    // Facing Up: threats from above are blocked
+    TEST_ASSERT(isAttackBlockedByShield(playerPos, Direction::Up, Vec2(100.0f, 80.0f)), "Threat from above must be blocked");
+    TEST_ASSERT(!isAttackBlockedByShield(playerPos, Direction::Up, Vec2(100.0f, 120.0f)), "Threat from below must NOT be blocked");
+
+    // Facing Left: threats from left are blocked
+    TEST_ASSERT(isAttackBlockedByShield(playerPos, Direction::Left, Vec2(80.0f, 100.0f)), "Threat from left must be blocked");
+
+    // Facing Right: threats from right are blocked
+    TEST_ASSERT(isAttackBlockedByShield(playerPos, Direction::Right, Vec2(120.0f, 100.0f)), "Threat from right must be blocked");
+
+    testsPassed++;
+}
+
+void test_slime_ai_and_combat() {
+    Slime slime(150.0f, 150.0f);
+    TEST_ASSERT(slime.getHP() == 2, "Slime starts with 2 HP");
+    TEST_ASSERT(!slime.isDead(), "Slime starts alive");
+    TEST_ASSERT(!slime.isHurt(), "Slime starts not hurt");
+
+    // Take 1 damage with knockback
+    Vec2 kb(0.0f, 100.0f);
+    bool tookDmg = slime.takeDamage(1, kb);
+    TEST_ASSERT(tookDmg, "First hit must inflict damage");
+    TEST_ASSERT(slime.getHP() == 1, "Slime HP must be 1 after hit");
+    TEST_ASSERT(slime.isHurt(), "Slime must be in hurt state");
+    TEST_ASSERT(!slime.isDead(), "Slime should still be alive");
+
+    // Immunity during hurt window
+    bool tookDmgBlocked = slime.takeDamage(1, kb);
+    TEST_ASSERT(!tookDmgBlocked, "Damage during hurt window must be blocked");
+
+    // Advance past hurt timer
+    MapData map;
+    slime.update(0.3f, Vec2(200.0f, 200.0f), map);
+    TEST_ASSERT(!slime.isHurt(), "Hurt state must clear after timer");
+
+    // Fatal blow
+    bool fatal = slime.takeDamage(1, kb);
+    TEST_ASSERT(fatal, "Second hit must inflict damage");
+    TEST_ASSERT(slime.isDead(), "Slime must be dead at 0 HP");
+
+    // Dead slime cannot take damage
+    TEST_ASSERT(!slime.takeDamage(1, kb), "Dead slime cannot take damage");
+
+    testsPassed++;
+}
+
+void test_item_drops() {
+    ItemDrop drop;
+    drop.pos = Vec2(100.0f, 100.0f);
+    TEST_ASSERT(drop.active, "Item drop starts active");
+    TEST_ASSERT(!drop.isBlinking(), "Should not blink initially");
+
+    // Advance to blink phase (< 3s remaining)
+    drop.update(10.0f);
+    TEST_ASSERT(drop.active, "Item should still be active");
+    TEST_ASSERT(drop.lifetime == 2.0f, "Lifetime should be 2.0s");
+
+    // Advance past lifetime -> deactivates
+    drop.update(2.5f);
+    TEST_ASSERT(!drop.active, "Item should be inactive after lifetime expires");
+
+    testsPassed++;
+}
+
 int main() {
     std::cout << "=== Running Headless Core Tests ===" << std::endl;
     test_vector_math();
@@ -449,6 +528,9 @@ int main() {
     test_typewriter();
     test_combat_and_sword_hitboxes();
     test_player_sword_attack();
+    test_shield_defense();
+    test_slime_ai_and_combat();
+    test_item_drops();
 
     std::cout << "Tests Passed: " << testsPassed << " | Tests Failed: " << testsFailed << std::endl;
     return testsFailed == 0 ? 0 : 1;

@@ -49,6 +49,63 @@ for name, pal_str, pix_str in matches:
             pixels.append(color)
     assets.append((name, pixels))
 
+# Add procedural slime enemy sprites
+slime_pal = {
+    '.': (0, 0, 0, 0),
+    'O': (11, 12, 16, 255),
+    'D': (27, 67, 50, 255),
+    'G': (45, 106, 79, 255),
+    'L': (82, 183, 136, 255),
+    'H': (149, 213, 178, 255),
+    'E': (8, 28, 21, 255),
+    'W': (255, 255, 255, 255)
+}
+
+slime_0_rows = [
+    "................",
+    "................",
+    "................",
+    ".....OOOOOO.....",
+    "....OGGGGGGO....",
+    "....OGHHHHGGO...",
+    "...OGHWWHLWWGO..",
+    "...OGHEEHLEEHGO.",
+    "..OGGGGGGGGGGGGO",
+    "..OGGGGGGGGGGGGO",
+    "..OGGDDDDDDDDGGO",
+    "..OGDDDDDDDDDDGO",
+    "..ODDDDDDDDDDDDO",
+    "..OOOOOOOOOOOOOO",
+    "................",
+    "................"
+]
+
+slime_1_rows = [
+    "................",
+    "................",
+    ".....OOOOOO.....",
+    "....OGGGGGGO....",
+    "....OGHHHHGGO...",
+    "...OGHWWHLWWGO..",
+    "...OGHEEHLEEHGO.",
+    "...OGGGGGGGGGGO.",
+    "...OGGGGGGGGGGO.",
+    "...OGGDDDDDDGGO.",
+    "...OGDDDDDDDDGO.",
+    "...ODDDDDDDDDDO.",
+    "...OOOOOOOOOOOO.",
+    "................",
+    "................",
+    "................"
+]
+
+for sname, srows in [('slime_0', slime_0_rows), ('slime_1', slime_1_rows)]:
+    spix = []
+    for r in srows:
+        for ch in r:
+            spix.append(slime_pal.get(ch, (0, 0, 0, 0)))
+    assets.append((sname, spix))
+
 # Write GeneratedAssets.hpp
 with open('src/render/GeneratedAssets.hpp', 'w') as f:
     f.write('''#pragma once
