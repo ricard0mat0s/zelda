@@ -8,6 +8,7 @@
 #include "../src/core/Movement.hpp"
 #include "../src/core/MapData.hpp"
 #include "../src/core/Player.hpp"
+#include "../src/core/Health.hpp"
 #include "../src/render/GeneratedAssets.hpp"
 
 using namespace Core;
@@ -231,6 +232,105 @@ void test_player_simulation() {
     testsPassed++;
 }
 
+void test_health_system() {
+    Health health(3);
+    TEST_ASSERT(health.getMaxHearts() == 3, "Max hearts should be 3");
+    TEST_ASSERT(health.getMaxHP() == 6, "Max HP should be 6");
+    TEST_ASSERT(health.getCurrentHP() == 6, "Current HP should be 6");
+    TEST_ASSERT(!health.isDead(), "Health should not be dead");
+    TEST_ASSERT(!health.isInvulnerable(), "Health should not be invulnerable initially");
+
+    auto states = health.getHeartStates();
+    TEST_ASSERT(states.size() == 3, "Should have 3 heart states");
+    TEST_ASSERT(states[0] == HeartState::Full && states[1] == HeartState::Full && states[2] == HeartState::Full, "All 3 hearts should be Full");
+
+    // Take 1 HP damage (half heart)
+    auto res1 = health.takeDamage(1);
+    TEST_ASSERT(res1.damaged, "Should have taken damage");
+    TEST_ASSERT(res1.remainingHP == 5, "Remaining HP should be 5");
+    TEST_ASSERT(health.isInvulnerable(), "Should be invulnerable after damage");
+
+    states = health.getHeartStates();
+    TEST_ASSERT(states[0] == HeartState::Full && states[1] == HeartState::Full && states[2] == HeartState::Half, "Heart states should be Full, Full, Half");
+
+    // Taking damage while invulnerable is blocked
+    auto resBlocked = health.takeDamage(2);
+    TEST_ASSERT(!resBlocked.damaged, "Damage must be ignored while invulnerable");
+    TEST_ASSERT(health.getCurrentHP() == 5, "HP must remain 5");
+
+    // Advance time past 1.0s invulnerability
+    health.update(1.1f);
+    TEST_ASSERT(!health.isInvulnerable(), "Invulnerability should expire after 1.1s");
+
+    // Take 4 HP damage
+    health.takeDamage(4);
+    TEST_ASSERT(health.getCurrentHP() == 1, "Remaining HP should be 1");
+    states = health.getHeartStates();
+    TEST_ASSERT(states[0] == HeartState::Half && states[1] == HeartState::Empty && states[2] == HeartState::Empty, "Heart states should be Half, Empty, Empty");
+
+    health.update(1.1f);
+
+    // Heal 3 HP
+    health.heal(3);
+    TEST_ASSERT(health.getCurrentHP() == 4, "HP should be 4 after healing 3");
+    states = health.getHeartStates();
+    TEST_ASSERT(states[0] == HeartState::Full && states[1] == HeartState::Full && states[2] == HeartState::Empty, "Heart states should be Full, Full, Empty");
+
+    // Add heart container
+    health.addHeartContainer();
+    TEST_ASSERT(health.getMaxHearts() == 4, "Max hearts should now be 4");
+    TEST_ASSERT(health.getCurrentHP() == 8, "Adding heart container should restore full 8 HP");
+    states = health.getHeartStates();
+    TEST_ASSERT(states.size() == 4, "Should have 4 heart containers");
+    TEST_ASSERT(states[3] == HeartState::Full, "Fourth heart should be Full");
+
+    health.update(1.1f);
+
+    // Fatal damage
+    auto resFatal = health.takeDamage(10);
+    TEST_ASSERT(resFatal.damaged && resFatal.isDead, "Fatal damage should kill");
+    TEST_ASSERT(health.isDead(), "Should be dead");
+    TEST_ASSERT(health.getCurrentHP() == 0, "HP should be 0");
+
+    // Cannot heal while dead
+    health.heal(10);
+    TEST_ASSERT(health.getCurrentHP() == 0 && health.isDead(), "Cannot heal while dead");
+
+    testsPassed++;
+}
+
+void test_player_damage_and_flicker() {
+    Player player(200.0f, 280.0f);
+    TEST_ASSERT(player.getHealth().getCurrentHP() == 6, "Player starts with 6 HP");
+
+    // Take damage
+    auto res = player.takeDamage(2);
+    TEST_ASSERT(res.damaged, "Player should take damage");
+    TEST_ASSERT(player.getHealth().getCurrentHP() == 4, "Player HP should be 4");
+    TEST_ASSERT(player.getHealth().isInvulnerable(), "Player should be invulnerable");
+
+    // Flicker test
+    bool initialFlicker = player.getHealth().isFlickerVisible();
+    player.getHealth().update(0.08f);
+    bool nextFlicker = player.getHealth().isFlickerVisible();
+    TEST_ASSERT(initialFlicker != nextFlicker, "Flicker visibility should alternate across 0.08s steps");
+
+    // Expire invulnerability
+    player.getHealth().update(1.0f);
+    TEST_ASSERT(player.getHealth().isFlickerVisible(), "Flicker should always be visible when not invulnerable");
+
+    // Fatal damage to player
+    player.takeDamage(10);
+    TEST_ASSERT(player.getHealth().isDead(), "Player should be dead");
+
+    MapData map;
+    MovementInput inRight{false, false, false, true};
+    player.update(0.1f, inRight, map);
+    TEST_ASSERT(player.getVelocity().x == 0.0f && !player.isMoving(), "Dead player must not move");
+
+    testsPassed++;
+}
+
 int main() {
     std::cout << "=== Running Headless Core Tests ===" << std::endl;
     test_vector_math();
@@ -242,6 +342,8 @@ int main() {
     test_movement_math();
     test_map_data();
     test_player_simulation();
+    test_health_system();
+    test_player_damage_and_flicker();
 
     std::cout << "Tests Passed: " << testsPassed << " | Tests Failed: " << testsFailed << std::endl;
     return testsFailed == 0 ? 0 : 1;

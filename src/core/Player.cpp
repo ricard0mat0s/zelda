@@ -6,6 +6,15 @@ Player::Player(float x, float y)
     : m_pos(x, y) {}
 
 void Player::update(float dt, const MovementInput& input, const MapData& map) {
+    m_health.update(dt);
+
+    if (m_health.isDead()) {
+        m_velocity = {0.0f, 0.0f};
+        m_isMoving = false;
+        m_animFrame = 0;
+        return;
+    }
+
     MovementResult moveRes = computeMovementVelocity(input, m_facing, m_speed);
     m_velocity = moveRes.velocity;
     m_facing = moveRes.facing;

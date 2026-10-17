@@ -1,25 +1,21 @@
 # 04: Pure Domain HealthSystem & Retro Hearts HUD
 
-**What to build:** A decoupled, test-driven health model managing hearts and temporary invulnerability, connected to a persistent HUD overlay scene that displays 3 retro hearts with half-heart precision.
+**What to build:** A decoupled, test-driven health model managing hearts and temporary invulnerability in native C++, connected to a persistent HUD overlay rendering 3 retro hearts with half-heart precision and flashing invulnerability.
 
 **Blocked by:** 03 (Overworld Map & 4-Directional Player Movement)
 
 **Status:** resolved
 
-- [x] TDD unit tests for `HealthSystem` verify damage reduction, healing, max health caps, and invulnerability timer countdowns.
-- [x] `UIScene` overlay renders on top of the active game scene showing 3 full hearts (6 HP units).
-- [x] Taking damage deducts hearts on the HUD and triggers player sprite flashing invulnerability for 1.0 second.
-- [x] Zero HP triggers death state notification.
+- [x] TDD unit tests for `Health` verify damage reduction, half-heart precision, healing, max health caps, and invulnerability timer countdowns.
+- [x] `UIRenderer` renders the classic `- LIFE -` HUD header and 3 heart containers (`heart_full`, `heart_half`, `heart_empty`).
+- [x] Taking damage deducts hearts on the HUD, plays `playerHurt` SFX, and triggers player sprite flashing invulnerability for 1.0 second.
+- [x] Zero HP triggers death state, freezes movement, displays a red tint and Game Over overlay with `ENTER` retry prompt.
+- [x] Debug controls `H` (take 1 damage) and `J` (heal 1 HP) allow rapid gameplay verification.
 
 ## Resolution Summary
 
-- Created `src/systems/HealthSystem.ts` managing 3 max hearts (6 HP units), half-heart precision (`getHeartUnits()`), healing, invulnerability countdown, and death state. Verified with 6 unit tests in `src/systems/HealthSystem.test.ts`.
-- Created 16x16 pixel art textures for `heart_full`, `heart_half`, and `heart_empty` in `src/utils/AssetGenerator.ts`. Verified in `src/utils/AssetGenerator.test.ts`.
-- Implemented `UIScene` overlay in `src/scenes/UIScene.ts` rendering the retro `- LIFE -` HUD header and dynamic hearts that re-render upon health state changes.
-- Integrated `HealthSystem` into `Player.ts`:
-  - `takeDamage()` plays `playerHurt` SFX and triggers camera hit flash.
-  - Flashing alpha effect while invulnerable for 1.0 second.
-  - Death handling with movement disable and red tint.
-  - Added debug test controls (`H` to damage 1 HP, `J` to heal 1 HP).
-- Launched `UIScene` from `OverworldScene.ts` and registered it in `src/main.ts`.
-- Verified: `npx vitest run` (25/25 passing across 8 suites), `npx tsc --noEmit` (clean), and `npm run build` (successful).
+- Created `src/core/Health.hpp` and `src/core/Health.cpp` managing 3 max hearts (6 HP units), damage resolution, healing, 1.0s invulnerability timer, death state, and `isFlickerVisible()` 0.08s blinking cycle.
+- Integrated `Health` into `src/core/Player.hpp` and `src/core/Player.cpp` with dead movement freeze and damage forwarding.
+- Built `src/render/UIRenderer.hpp` and `src/render/UIRenderer.cpp` rendering the retro `- LIFE -` header, dynamic heart states, and Game Over retry prompt.
+- Integrated hearts HUD and player invulnerability flashing into `src/app/OverworldScene.cpp`, connecting `AudioPlayer::playPlayerHurt()` on damage.
+- Verified: `make test` (11/11 passing headlessly), `make` (clean build), and live runtime verification with Raylib window.

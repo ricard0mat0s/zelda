@@ -1,5 +1,6 @@
 #include "app/OverworldScene.hpp"
 #include "render/AssetManager.hpp"
+#include "render/AudioPlayer.hpp"
 #include "core/GameConfig.hpp"
 #include <algorithm>
 #include <cmath>
@@ -25,6 +26,25 @@ void OverworldScene::reset() {
 }
 
 void OverworldScene::update(float dt) {
+    // 0. If dead, allow retry
+    if (m_player.getHealth().isDead()) {
+        if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) {
+            reset();
+        }
+        return;
+    }
+
+    // Debug testing controls for health verification
+    if (IsKeyPressed(KEY_H)) {
+        auto res = m_player.takeDamage(1);
+        if (res.damaged) {
+            Render::AudioPlayer::instance().playPlayerHurt();
+        }
+    }
+    if (IsKeyPressed(KEY_J)) {
+        m_player.heal(1);
+    }
+
     // 1. Process movement input
     Core::MovementInput input;
     input.up = IsKeyDown(KEY_W) || IsKeyDown(KEY_UP);
@@ -64,11 +84,30 @@ void OverworldScene::render() {
     Texture2D shrineTex = assets.getTexture("shrine_pedestal_sword");
     DrawTexture(shrineTex, static_cast<int>(m_shrinePos.x - 8.0f), static_cast<int>(m_shrinePos.y - 8.0f), WHITE);
 
-    // Render Hero sprite
+    // Render Hero sprite with invulnerability flicker
+    const auto& health = m_player.getHealth();
     Texture2D heroTex = assets.getTexture(m_player.getTextureName());
-    DrawTexture(heroTex, static_cast<int>(m_player.getPosition().x), static_cast<int>(m_player.getPosition().y), WHITE);
+    int px = static_cast<int>(m_player.getPosition().x);
+    int py = static_cast<int>(m_player.getPosition().y);
+
+    if (health.isDead()) {
+        DrawTexture(heroTex, px, py, Color{255, 100, 100, 220});
+    } else if (health.isInvulnerable()) {
+        if (health.isFlickerVisible()) {
+            DrawTexture(heroTex, px, py, Color{255, 255, 255, 140});
+        }
+    } else {
+        DrawTexture(heroTex, px, py, WHITE);
+    }
 
     EndMode2D();
+
+    // 2. Screen-space HUD & Overlays
+    m_uiRenderer.renderHearts(m_player.getHealth());
+
+    if (health.isDead()) {
+        m_uiRenderer.renderGameOver();
+    }
 
     // 2. Screen-space HUD & Location Banner
     if (m_bannerTimer < BANNER_DURATION) {

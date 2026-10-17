@@ -38,7 +38,7 @@ test: $(TEST_TARGET)
 	@echo "Executing tests..."
 	@./$(TEST_TARGET)
 
-TEST_CORE_SRCS = src/core/SoundGenerator.cpp src/core/Movement.cpp src/core/MapData.cpp src/core/Player.cpp src/render/GeneratedAssets.cpp
+TEST_CORE_SRCS = src/core/SoundGenerator.cpp src/core/Movement.cpp src/core/MapData.cpp src/core/Player.cpp src/core/Health.cpp src/render/GeneratedAssets.cpp
 
 $(TEST_TARGET): $(TEST_SRCS) $(TEST_CORE_SRCS)
 	@mkdir -p $(BIN_DIR)
