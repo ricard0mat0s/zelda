@@ -9,6 +9,9 @@
 #include "../src/core/MapData.hpp"
 #include "../src/core/Player.hpp"
 #include "../src/core/Health.hpp"
+#include "../src/core/Inventory.hpp"
+#include "../src/core/Typewriter.hpp"
+#include "../src/core/Combat.hpp"
 #include "../src/render/GeneratedAssets.hpp"
 
 using namespace Core;
@@ -331,6 +334,104 @@ void test_player_damage_and_flicker() {
     testsPassed++;
 }
 
+void test_inventory() {
+    Inventory inv;
+    TEST_ASSERT(!inv.hasSword, "Should not start with sword");
+    TEST_ASSERT(!inv.hasBow, "Should not start with bow");
+    TEST_ASSERT(inv.keys == 0, "Should start with 0 keys");
+
+    inv.obtainSword();
+    TEST_ASSERT(inv.hasSword, "Should now have sword");
+
+    inv.addKeys(2);
+    TEST_ASSERT(inv.keys == 2, "Should have 2 keys");
+
+    TEST_ASSERT(inv.useKey(), "First key use should succeed");
+    TEST_ASSERT(inv.keys == 1, "Keys should be 1");
+    TEST_ASSERT(inv.useKey(), "Second key use should succeed");
+    TEST_ASSERT(inv.keys == 0, "Keys should be 0");
+    TEST_ASSERT(!inv.useKey(), "Key use with 0 keys should fail");
+
+    testsPassed++;
+}
+
+void test_typewriter() {
+    Typewriter tw("Hello", 0.02f);
+    TEST_ASSERT(tw.getDisplayedText().empty(), "Initially no characters revealed");
+    TEST_ASSERT(!tw.isComplete(), "Should not be complete initially");
+
+    // Advance 0.04s -> 2 chars ("He")
+    tw.update(0.045f);
+    TEST_ASSERT(tw.getDisplayedText() == "He", "Should reveal 2 characters 'He'");
+
+    // Skip to end
+    tw.skip();
+    TEST_ASSERT(tw.isComplete(), "Should be complete after skip");
+    TEST_ASSERT(tw.getDisplayedText() == "Hello", "Should reveal entire string on skip");
+
+    testsPassed++;
+}
+
+void test_combat_and_sword_hitboxes() {
+    Vec2 playerPos(100.0f, 100.0f);
+
+    Rect hitDown = getSwordHitbox(playerPos, Direction::Down);
+    TEST_ASSERT(hitDown.x == 100.0f && hitDown.y == 114.0f, "Sword Down hitbox must be in front of player");
+    TEST_ASSERT(hitDown.width == 16.0f && hitDown.height == 14.0f, "Sword Down hitbox dimensions");
+
+    Rect hitUp = getSwordHitbox(playerPos, Direction::Up);
+    TEST_ASSERT(hitUp.x == 100.0f && hitUp.y == 86.0f, "Sword Up hitbox must be above player");
+
+    Rect hitLeft = getSwordHitbox(playerPos, Direction::Left);
+    TEST_ASSERT(hitLeft.x == 86.0f && hitLeft.y == 100.0f, "Sword Left hitbox must be left of player");
+
+    Rect hitRight = getSwordHitbox(playerPos, Direction::Right);
+    TEST_ASSERT(hitRight.x == 116.0f && hitRight.y == 100.0f, "Sword Right hitbox must be right of player");
+
+    // Knockback
+    Vec2 attacker(100.0f, 100.0f);
+    Vec2 targetDown(100.0f, 120.0f);
+    Vec2 kbDown = calculateKnockback(attacker, targetDown, 140.0f);
+    TEST_ASSERT(kbDown.x == 0.0f && kbDown.y == 140.0f, "Knockback should be directly downward");
+
+    Vec2 targetRight(130.0f, 100.0f);
+    Vec2 kbRight = calculateKnockback(attacker, targetRight, 140.0f);
+    TEST_ASSERT(kbRight.x == 140.0f && kbRight.y == 0.0f, "Knockback should be directly rightward");
+
+    testsPassed++;
+}
+
+void test_player_sword_attack() {
+    Player player(200.0f, 280.0f);
+    MapData map;
+
+    // Cannot attack without sword
+    TEST_ASSERT(!player.getInventory().hasSword, "Player starts without sword");
+    TEST_ASSERT(!player.startAttack(), "Player cannot attack without sword");
+    TEST_ASSERT(!player.isAttacking(), "Player should not be attacking");
+
+    // Obtain sword and attack
+    player.getInventory().obtainSword();
+    TEST_ASSERT(player.startAttack(), "Player can attack with sword");
+    TEST_ASSERT(player.isAttacking(), "Player is now attacking");
+
+    // While attacking, player cannot move
+    MovementInput inRight{false, false, false, true};
+    player.update(0.1f, inRight, map);
+    TEST_ASSERT(player.getPosition().x == 200.0f, "Player position must stay locked during swing");
+    TEST_ASSERT(player.getCurrentSwordHitbox().width > 0.0f, "Active sword hitbox should be present");
+
+    // After attack duration ends, player can move again
+    player.update(0.2f, inRight, map);
+    TEST_ASSERT(!player.isAttacking(), "Attack state should clear after timer expires");
+
+    // Now movement works again
+    player.update(0.1f, inRight, map);
+    TEST_ASSERT(player.getPosition().x > 200.0f, "Player should move after attack ends");
+
+    testsPassed++;
+}
+
 int main() {
     std::cout << "=== Running Headless Core Tests ===" << std::endl;
     test_vector_math();
@@ -344,6 +445,10 @@ int main() {
     test_player_simulation();
     test_health_system();
     test_player_damage_and_flicker();
+    test_inventory();
+    test_typewriter();
+    test_combat_and_sword_hitboxes();
+    test_player_sword_attack();
 
     std::cout << "Tests Passed: " << testsPassed << " | Tests Failed: " << testsFailed << std::endl;
     return testsFailed == 0 ? 0 : 1;

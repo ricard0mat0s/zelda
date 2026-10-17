@@ -4,6 +4,8 @@
 #include "core/Movement.hpp"
 #include "core/MapData.hpp"
 #include "core/Health.hpp"
+#include "core/Inventory.hpp"
+#include "core/Combat.hpp"
 #include <string>
 
 namespace Core {
@@ -38,6 +40,14 @@ public:
     DamageResult takeDamage(int amount) { return m_health.takeDamage(amount); }
     void heal(int amount) { m_health.heal(amount); }
 
+    Inventory& getInventory() { return m_inventory; }
+    const Inventory& getInventory() const { return m_inventory; }
+
+    bool isAttacking() const { return m_isAttacking; }
+    bool startAttack();
+    Rect getCurrentSwordHitbox() const;
+    std::string getSlashTextureName() const;
+
 private:
     Vec2 m_pos;
     Vec2 m_velocity{0.0f, 0.0f};
@@ -46,6 +56,11 @@ private:
     float m_speed = 90.0f; // px/sec
 
     Health m_health{3};
+    Inventory m_inventory;
+
+    bool m_isAttacking = false;
+    float m_attackTimer = 0.0f;
+    float m_attackCooldown = 0.0f;
 
     Rect m_localHitbox{2.0f, 6.0f, 12.0f, 10.0f};
 
