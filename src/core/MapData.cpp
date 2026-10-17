@@ -46,8 +46,8 @@ void MapData::buildOverworldMap() {
                 continue;
             }
 
-            // Northern Stone Ruins (x: 17..23, y: 2..5)
-            bool isRuinsWall = (y == 2 && x >= 17 && x <= 23) ||
+            // Northern Stone Ruins (x: 17..23, y: 2..5) with entrance at (20, 2)
+            bool isRuinsWall = (y == 2 && x >= 17 && x <= 23 && x != 20) ||
                                (x == 17 && y >= 3 && y <= 4) ||
                                (x == 23 && y >= 3 && y <= 4);
             if (isRuinsWall) {

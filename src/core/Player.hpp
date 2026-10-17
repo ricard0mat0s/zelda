@@ -10,17 +10,21 @@
 
 namespace Core {
 
+class Dungeon;
+
 class Player {
 public:
     Player(float x = 200.0f, float y = 280.0f);
 
     void update(float dt, const MovementInput& input, const MapData& map);
+    void updateInDungeon(float dt, const MovementInput& input, const Dungeon& dungeon);
 
     Vec2 getPosition() const { return m_pos; }
     void setPosition(const Vec2& pos) { m_pos = pos; }
 
     Vec2 getVelocity() const { return m_velocity; }
     Direction getFacing() const { return m_facing; }
+    void setFacing(Direction dir) { m_facing = dir; }
     bool isMoving() const { return m_isMoving; }
 
     Rect getLocalHitbox() const { return m_localHitbox; }
@@ -36,6 +40,7 @@ public:
 
     Health& getHealth() { return m_health; }
     const Health& getHealth() const { return m_health; }
+    void setHealth(const Health& health) { m_health = health; }
 
     DamageResult takeDamage(int amount) { return m_health.takeDamage(amount); }
     void heal(int amount) { m_health.heal(amount); }

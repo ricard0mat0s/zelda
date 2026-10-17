@@ -1,5 +1,6 @@
 #include "core/Player.hpp"
 #include "core/GameConfig.hpp"
+#include "core/Dungeon.hpp"
 
 namespace Core {
 
@@ -65,6 +66,47 @@ void Player::update(float dt, const MovementInput& input, const MapData& map) {
     if (m_isMoving) {
         Vec2 displacement = m_velocity * dt;
         m_pos = map.resolveMovement(m_pos, displacement, m_localHitbox);
+
+        m_animTimer += dt;
+        if (m_animTimer >= FRAME_DURATION) {
+            m_animTimer -= FRAME_DURATION;
+            m_animFrame = (m_animFrame + 1) % 2;
+        }
+    } else {
+        m_animFrame = 0;
+        m_animTimer = 0.0f;
+    }
+}
+
+void Player::updateInDungeon(float dt, const MovementInput& input, const Dungeon& dungeon) {
+    m_health.update(dt);
+
+    if (m_attackCooldown > 0.0f) {
+        m_attackCooldown -= dt;
+    }
+
+    if (m_isAttacking) {
+        m_attackTimer -= dt;
+        if (m_attackTimer <= 0.0f) {
+            m_isAttacking = false;
+        }
+    }
+
+    if (m_health.isDead() || m_isAttacking) {
+        m_velocity = {0.0f, 0.0f};
+        m_isMoving = false;
+        m_animFrame = 0;
+        return;
+    }
+
+    MovementResult moveRes = computeMovementVelocity(input, m_facing, m_speed);
+    m_velocity = moveRes.velocity;
+    m_facing = moveRes.facing;
+    m_isMoving = moveRes.isMoving;
+
+    if (m_isMoving) {
+        Vec2 displacement = m_velocity * dt;
+        m_pos = dungeon.resolveMovement(m_pos, displacement, m_localHitbox);
 
         m_animTimer += dt;
         if (m_animTimer >= FRAME_DURATION) {

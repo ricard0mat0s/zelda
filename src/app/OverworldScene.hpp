@@ -28,6 +28,10 @@ public:
 
     const Core::MapData& getMap() const { return m_map; }
 
+    bool wantsEnterDungeon() const { return m_wantsEnterDungeon; }
+    void clearDungeonRequest() { m_wantsEnterDungeon = false; }
+    void returnFromDungeon(const Core::Player& dungeonPlayer);
+
 private:
     Core::MapData m_map;
     Core::Player m_player;
@@ -46,6 +50,8 @@ private:
     // Overworld entities and drops
     std::vector<Core::Slime> m_slimes;
     std::vector<Core::ItemDrop> m_itemDrops;
+
+    bool m_wantsEnterDungeon = false;
 };
 
 } // namespace App

@@ -57,9 +57,29 @@ void GameApp::update(float dt) {
             break;
         case Core::GameState::Overworld:
             m_overworldScene.update(dt);
+            if (m_overworldScene.wantsEnterDungeon()) {
+                m_overworldScene.clearDungeonRequest();
+                m_dungeonScene.enterDungeon(m_overworldScene.getPlayer());
+                m_state = Core::GameState::Dungeon;
+            }
             if (IsKeyPressed(KEY_BACKSPACE)) {
                 m_titleScene.reset();
                 m_overworldScene.reset();
+                m_dungeonScene.reset();
+                m_state = Core::GameState::Title;
+            }
+            break;
+        case Core::GameState::Dungeon:
+            m_dungeonScene.update(dt);
+            if (m_dungeonScene.wantsExitToOverworld()) {
+                m_dungeonScene.clearExitRequest();
+                m_overworldScene.returnFromDungeon(m_dungeonScene.getPlayer());
+                m_state = Core::GameState::Overworld;
+            }
+            if (IsKeyPressed(KEY_BACKSPACE)) {
+                m_titleScene.reset();
+                m_overworldScene.reset();
+                m_dungeonScene.reset();
                 m_state = Core::GameState::Title;
             }
             break;
@@ -77,6 +97,9 @@ void GameApp::render() {
             break;
         case Core::GameState::Overworld:
             m_overworldScene.render();
+            break;
+        case Core::GameState::Dungeon:
+            m_dungeonScene.render();
             break;
         default:
             break;

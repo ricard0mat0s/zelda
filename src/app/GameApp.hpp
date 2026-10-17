@@ -4,6 +4,7 @@
 #include "render/RenderUtils.hpp"
 #include "app/TitleScene.hpp"
 #include "app/OverworldScene.hpp"
+#include "app/DungeonScene.hpp"
 
 namespace App {
 
@@ -24,6 +25,7 @@ private:
     Render::VirtualCanvas m_canvas;
     TitleScene m_titleScene;
     OverworldScene m_overworldScene;
+    DungeonScene m_dungeonScene;
     bool m_running = false;
 };
 

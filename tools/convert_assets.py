@@ -106,6 +106,174 @@ for sname, srows in [('slime_0', slime_0_rows), ('slime_1', slime_1_rows)]:
             spix.append(slime_pal.get(ch, (0, 0, 0, 0)))
     assets.append((sname, spix))
 
+# Dungeon sprites
+dungeon_pal = {
+    '.': (0, 0, 0, 0),
+    'B': (15, 23, 42, 255),    # Very dark slate #0f172a
+    'D': (30, 41, 59, 255),    # Dark slate #1e293b
+    'M': (51, 65, 85, 255),    # Mid slate #334155
+    'L': (100, 116, 139, 255), # Light slate #64748b
+    'H': (148, 163, 184, 255), # Highlight slate #94a3b8
+    'W': (241, 245, 249, 255), # White/near-white #f1f5f9
+    'G': (234, 179, 8, 255),   # Gold rune #eab308
+    'Y': (250, 204, 21, 255),  # Bright gold #facc15
+    'C': (6, 182, 212, 255),   # Cyan glow #06b6d4
+    'A': (34, 211, 238, 255),  # Aqua bright #22d3ee
+    'I': (71, 85, 105, 255),   # Iron bar #475569
+    'O': (2, 6, 23, 255),      # Black/deep void #020617
+}
+
+dungeon_floor_rows = [
+    "DDDDDDDDDDDDDDDB",
+    "DMMMMMMMMMMMMMMB",
+    "DMMMMMMMMMMMMMMB",
+    "DMMMMMMMMMMMMMMB",
+    "DMMMMMMMMMMMMMMB",
+    "DMMMMMMMMMMMMMMB",
+    "DMMMMMMMMMMMMMMB",
+    "BBBBBBBBBBBBBBBB",
+    "DDDDDDDBDDDDDDDB",
+    "DMMMMMMBDMMMMMMB",
+    "DMMMMMMBDMMMMMMB",
+    "DMMMMMMBDMMMMMMB",
+    "DMMMMMMBDMMMMMMB",
+    "DMMMMMMBDMMMMMMB",
+    "DMMMMMMBDMMMMMMB",
+    "BBBBBBBBBBBBBBBB",
+]
+
+dungeon_wall_rows = [
+    "HHHHHHHHHHHHHHHH",
+    "HLLLLLLBHLLLLLLB",
+    "HLDDDDLBLDDDDDLB",
+    "HLDDDDLBLDDDDDLB",
+    "BBBBBBBBBBBBBBBB",
+    "LLLLLLBLLLLLLBLH",
+    "DDDDDLBLDDDDDLBL",
+    "DDDDDLBLDDDDDLBL",
+    "BBBBBBBBBBBBBBBB",
+    "HLLLLLLBHLLLLLLB",
+    "HLDDDDLBLDDDDDLB",
+    "HLDDDDLBLDDDDDLB",
+    "BBBBBBBBBBBBBBBB",
+    "ODDDDDDODDDDDDDO",
+    "ODDDDDDODDDDDDDO",
+    "OOOOOOOOOOOOOOOO",
+]
+
+dungeon_door_closed_rows = [
+    "HHHHHHHHHHHHHHHH",
+    "HLLLLLLLLLLLLLLH",
+    "HLDDDDDDDDDDDDLH",
+    "HLDOOIOOIOOIOODH",
+    "HLDOOIOOIOOIOODH",
+    "HLDIIIIIIIIIIIDH",
+    "HLDOOIOOIOOIOODH",
+    "HLDOOIOOIOOIOODH",
+    "HLDIIIIIIIIIIIDH",
+    "HLDOOIOOIOOIOODH",
+    "HLDOOIOOIOOIOODH",
+    "HLDOOIOOIOOIOODH",
+    "HLDIIIIIIIIIIIDH",
+    "HLDOOIOOIOOIOODH",
+    "HLDOOIOOIOOIOODH",
+    "BBBBBBBBBBBBBBBB",
+]
+
+dungeon_door_open_rows = [
+    "HHHHHHHHHHHHHHHH",
+    "HLLLLLLLLLLLLLLH",
+    "HLDDDDDDDDDDDDLH",
+    "HLDOOOOOOOOOOODH",
+    "HLDOOOOOOOOOOODH",
+    "HLDOOOOOOOOOOODH",
+    "HLDOOOOOOOOOOODH",
+    "HLDOOOOOOOOOOODH",
+    "HLDOOOOOOOOOOODH",
+    "HLDOOOOOOOOOOODH",
+    "HLDOOOOOOOOOOODH",
+    "HLDOOOOOOOOOOODH",
+    "HLDOOOOOOOOOOODH",
+    "HLDOOOOOOOOOOODH",
+    "HLDOOOOOOOOOOODH",
+    "DDDOOOOOOOOOODDD",
+]
+
+pressure_plate_up_rows = [
+    "DDDDDDDDDDDDDDDB",
+    "DMMMMMMMMMMMMMMB",
+    "DMHHHHHHHHHHHMMB",
+    "DMHLLLLLLLLLHMMB",
+    "DMHLDDDDDDDLHMMB",
+    "DMHLDDGGDDDLHMMB",
+    "DMHLDGYGYGDLHMMB",
+    "DMHLGGYYYYGGLHMB",
+    "DMHLGGYYYYGGLHMB",
+    "DMHLDGYGYGDLHMMB",
+    "DMHLDDGGDDDLHMMB",
+    "DMHLDDDDDDDLHMMB",
+    "DMHLLLLLLLLLHMMB",
+    "DMBBBBBBBBBBBMMB",
+    "DMMMMMMMMMMMMMMB",
+    "BBBBBBBBBBBBBBBB",
+]
+
+pressure_plate_down_rows = [
+    "DDDDDDDDDDDDDDDB",
+    "DMMMMMMMMMMMMMMB",
+    "DMMMMMMMMMMMMMMB",
+    "DMLLLLLLLLLLLMMB",
+    "DMLDDDDDDDDDLMMB",
+    "DMLDDCCDDDDDLMMB",
+    "DMLDCACACDDDLMMB",
+    "DMLCCAACAACCLMMB",
+    "DMLCCAACAACCLMMB",
+    "DMLDCACACDDDLMMB",
+    "DMLDDCCDDDDDLMMB",
+    "DMLDDDDDDDDDLMMB",
+    "DMLLLLLLLLLLLMMB",
+    "DMMMMMMMMMMMMMMB",
+    "DMMMMMMMMMMMMMMB",
+    "BBBBBBBBBBBBBBBB",
+]
+
+dungeon_stairs_rows = [
+    "HHHHHHHHHHHHHHHH",
+    "HLLLLLLLLLLLLLLH",
+    "HLDDDDDDDDDDDDLH",
+    "HBBBBBBBBBBBBBBH",
+    "LLLLLLLLLLLLLLLL",
+    "LDDDDDDDDDDDDDDL",
+    "LBBBBBBBBBBBBBBB",
+    "MMMMMMMMMMMMMMMM",
+    "MDDDDDDDDDDDDDDM",
+    "MBBBBBBBBBBBBBBM",
+    "DDDDDDDDDDDDDDDD",
+    "DBBBBBBBBBBBBBBB",
+    "BBBBBBBBBBBBBBBB",
+    "OOOOOOOOOOOOOOOO",
+    "OOOOOOOOOOOOOOOO",
+    "OOOOOOOOOOOOOOOO",
+]
+
+dungeon_sprite_list = [
+    ('dungeon_floor', dungeon_floor_rows),
+    ('dungeon_wall', dungeon_wall_rows),
+    ('dungeon_door_closed', dungeon_door_closed_rows),
+    ('dungeon_door_open', dungeon_door_open_rows),
+    ('pressure_plate_up', pressure_plate_up_rows),
+    ('pressure_plate_down', pressure_plate_down_rows),
+    ('dungeon_stairs', dungeon_stairs_rows),
+]
+
+for dname, drows in dungeon_sprite_list:
+    dpix = []
+    for r in drows:
+        for ch in r:
+            dpix.append(dungeon_pal.get(ch, (0, 0, 0, 0)))
+    assets.append((dname, dpix))
+
+
 # Write GeneratedAssets.hpp
 with open('src/render/GeneratedAssets.hpp', 'w') as f:
     f.write('''#pragma once

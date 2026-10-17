@@ -19,6 +19,7 @@ void OverworldScene::reset() {
     m_player = Core::Player(200.0f, 280.0f);
     m_bannerTimer = 0.0f;
     m_shrineHasSword = true;
+    m_wantsEnterDungeon = false;
 
     // Spawn green slimes in forest clearings
     m_slimes.clear();
@@ -157,7 +158,13 @@ void OverworldScene::update(float dt) {
         }
     }
 
-    // 6. Camera tracking clamped to world bounds
+    // 6. Check Dungeon entrance trigger at Northern Ruins (col: 20, row: 2, pos: 320, 32)
+    Core::Rect entranceTrigger{314.0f, 26.0f, 12.0f, 12.0f};
+    if (m_player.getWorldHitbox().overlaps(entranceTrigger) && m_player.getFacing() == Core::Direction::Up) {
+        m_wantsEnterDungeon = true;
+    }
+
+    // 7. Camera tracking clamped to world bounds
     const float halfVW = Core::GameConfig::VIRTUAL_WIDTH * 0.5f;
     const float halfVH = Core::GameConfig::VIRTUAL_HEIGHT * 0.5f;
     const float maxX = static_cast<float>(Core::GameConfig::WORLD_WIDTH - Core::GameConfig::VIRTUAL_WIDTH);
@@ -170,7 +177,7 @@ void OverworldScene::update(float dt) {
     m_camera.target.x += (targetX - m_camera.target.x) * std::min(1.0f, dt * 10.0f);
     m_camera.target.y += (targetY - m_camera.target.y) * std::min(1.0f, dt * 10.0f);
 
-    // 7. Banner timer
+    // 8. Banner timer
     m_bannerTimer += dt;
 }
 
@@ -277,6 +284,15 @@ void OverworldScene::render() {
         DrawText(title, bx + 1, by + 1, 10, Color{11, 12, 16, a});
         DrawText(title, bx, by, 10, Color{255, 215, 0, a});
     }
+}
+
+void OverworldScene::returnFromDungeon(const Core::Player& dungeonPlayer) {
+    m_player.setHealth(dungeonPlayer.getHealth());
+    m_player.getInventory() = dungeonPlayer.getInventory();
+    m_player.setPosition(Core::Vec2{312.0f, 54.0f});
+    m_player.setFacing(Core::Direction::Down);
+    m_bannerTimer = 0.0f;
+    m_wantsEnterDungeon = false;
 }
 
 } // namespace App

@@ -15,6 +15,7 @@
 #include "../src/core/Shield.hpp"
 #include "../src/core/Slime.hpp"
 #include "../src/core/ItemDrop.hpp"
+#include "../src/core/Dungeon.hpp"
 #include "../src/render/GeneratedAssets.hpp"
 
 using namespace Core;
@@ -123,7 +124,7 @@ void test_sound_generator() {
 
 void test_generated_assets() {
     const auto& assets = Render::getAllGeneratedAssets();
-    TEST_ASSERT(assets.size() == 24, "Must contain exactly 24 procedural pixel art assets");
+    TEST_ASSERT(assets.size() == 31, "Must contain exactly 31 procedural pixel art assets");
 
     for (const auto& asset : assets) {
         TEST_ASSERT(asset.width == 16, "Asset width must be 16");
@@ -137,6 +138,13 @@ void test_generated_assets() {
     TEST_ASSERT(Render::findGeneratedAsset("slash_down") != nullptr, "slash_down must exist");
     TEST_ASSERT(Render::findGeneratedAsset("slime_0") != nullptr, "slime_0 must exist");
     TEST_ASSERT(Render::findGeneratedAsset("slime_1") != nullptr, "slime_1 must exist");
+    TEST_ASSERT(Render::findGeneratedAsset("dungeon_floor") != nullptr, "dungeon_floor must exist");
+    TEST_ASSERT(Render::findGeneratedAsset("dungeon_wall") != nullptr, "dungeon_wall must exist");
+    TEST_ASSERT(Render::findGeneratedAsset("dungeon_door_closed") != nullptr, "dungeon_door_closed must exist");
+    TEST_ASSERT(Render::findGeneratedAsset("dungeon_door_open") != nullptr, "dungeon_door_open must exist");
+    TEST_ASSERT(Render::findGeneratedAsset("pressure_plate_up") != nullptr, "pressure_plate_up must exist");
+    TEST_ASSERT(Render::findGeneratedAsset("pressure_plate_down") != nullptr, "pressure_plate_down must exist");
+    TEST_ASSERT(Render::findGeneratedAsset("dungeon_stairs") != nullptr, "dungeon_stairs must exist");
     TEST_ASSERT(Render::findGeneratedAsset("non_existent_sprite") == nullptr, "non_existent_sprite must return nullptr");
 
     testsPassed++;
@@ -511,6 +519,83 @@ void test_item_drops() {
     testsPassed++;
 }
 
+void test_dungeon_room_layout_and_plate() {
+    Dungeon dungeon;
+    dungeon.init();
+
+    TEST_ASSERT(dungeon.getCurrentRoomId() == 1, "Starts in Room 1 (Entrance Foyer)");
+    const auto& r1 = dungeon.getCurrentRoom();
+    TEST_ASSERT(r1.gridX == 1 && r1.gridY == 2, "Room 1 grid should be (1, 2)");
+    TEST_ASSERT(r1.hasPlate, "Room 1 must have a pressure plate");
+    TEST_ASSERT(r1.hasStairs, "Room 1 must have stairs to overworld");
+    TEST_ASSERT(r1.getDoor(Direction::Up) == DoorState::Closed, "North door starts closed");
+
+    // Check closed North door blocks movement
+    Rect doorwayBox{150.0f, 10.0f, 12.0f, 10.0f};
+    TEST_ASSERT(dungeon.checkCollision(doorwayBox), "Closed north door must collide / block player");
+
+    // Stepping on pressure plate at (160, 112)
+    Rect plateStepBox{158.0f, 110.0f, 10.0f, 10.0f};
+    bool triggered = dungeon.checkPlateTrigger(plateStepBox);
+    TEST_ASSERT(triggered, "Pressure plate must trigger when stepped on");
+    TEST_ASSERT(r1.plate.pressed, "Pressure plate must be marked pressed");
+    TEST_ASSERT(r1.getDoor(Direction::Up) == DoorState::Open, "North door must unlock to Open");
+
+    // Step again should not trigger again
+    TEST_ASSERT(!dungeon.checkPlateTrigger(plateStepBox), "Second step on plate does not re-trigger");
+
+    // Now North door is open, so doorway allows passage
+    TEST_ASSERT(!dungeon.checkCollision(doorwayBox), "Open north door allows passage");
+
+    // Stairs exit check
+    Rect stairsStepBox{158.0f, 206.0f, 10.0f, 10.0f};
+    TEST_ASSERT(dungeon.checkStairsExit(stairsStepBox), "Stepping on stairs triggers exit");
+
+    testsPassed++;
+}
+
+void test_dungeon_room_transitions() {
+    Dungeon dungeon;
+    dungeon.init();
+
+    // Unlock North door
+    Rect plateStepBox{158.0f, 110.0f, 10.0f, 10.0f};
+    dungeon.checkPlateTrigger(plateStepBox);
+
+    // Link approaches North doorway
+    Vec2 playerPos{160.0f, 16.0f};
+    Rect playerHitbox{154.0f, 12.0f, 12.0f, 10.0f};
+    bool transitionStarted = dungeon.checkDoorwayTransition(playerHitbox, Direction::Up, playerPos);
+    TEST_ASSERT(transitionStarted, "Walking into open north doorway initiates room transition");
+    TEST_ASSERT(dungeon.isTransitioning(), "Dungeon must be in transitioning state");
+
+    const auto& trans = dungeon.getTransition();
+    TEST_ASSERT(trans.fromRoomId == 1, "Transition from room 1");
+    TEST_ASSERT(trans.toRoomId == 2, "Transition to room 2");
+    TEST_ASSERT(trans.direction == Direction::Up, "Transition direction is Up");
+
+    // Test camera interpolation during transition
+    dungeon.update(0.25f);
+    TEST_ASSERT(dungeon.isTransitioning(), "Still transitioning at halfway mark");
+    Vec2 midCamera = dungeon.getCameraOffset();
+    TEST_ASSERT(midCamera.y < trans.startCameraPos.y, "Camera should interpolate upwards");
+
+    // Complete transition (0.5s duration)
+    dungeon.update(0.3f);
+    TEST_ASSERT(!dungeon.isTransitioning(), "Transition finished after duration");
+    TEST_ASSERT(dungeon.getCurrentRoomId() == 2, "Current room is now Room 2 (Crystal Chasm)");
+
+    // Test transition from Room 2 to Room 3 (West)
+    Vec2 westPlayerPos{16.0f, 120.0f};
+    Rect westPlayerHitbox{10.0f, 115.0f, 12.0f, 10.0f};
+    bool westTransition = dungeon.checkDoorwayTransition(westPlayerHitbox, Direction::Left, westPlayerPos);
+    TEST_ASSERT(westTransition, "Walking into west doorway from Room 2 initiates transition to Room 3");
+    dungeon.update(0.6f);
+    TEST_ASSERT(dungeon.getCurrentRoomId() == 3, "Current room is now Room 3 (Treasure Chamber)");
+
+    testsPassed++;
+}
+
 int main() {
     std::cout << "=== Running Headless Core Tests ===" << std::endl;
     test_vector_math();
@@ -531,6 +616,8 @@ int main() {
     test_shield_defense();
     test_slime_ai_and_combat();
     test_item_drops();
+    test_dungeon_room_layout_and_plate();
+    test_dungeon_room_transitions();
 
     std::cout << "Tests Passed: " << testsPassed << " | Tests Failed: " << testsFailed << std::endl;
     return testsFailed == 0 ? 0 : 1;

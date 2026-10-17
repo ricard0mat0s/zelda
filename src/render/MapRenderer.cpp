@@ -62,6 +62,10 @@ void MapRenderer::render(const Core::MapData& map, const Camera2D& camera) {
             }
         }
     }
+
+    // Draw Dungeon entrance stairway at Northern Ruins (col: 20, row: 2)
+    Texture2D dungeonStairsTex = assets.getTexture("dungeon_stairs");
+    DrawTexture(dungeonStairsTex, 20 * tileSize, 2 * tileSize, WHITE);
 }
 
 } // namespace Render
