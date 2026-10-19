@@ -16,6 +16,15 @@ void DungeonScene::init() {
     reset();
 }
 
+void DungeonScene::spawnArenaEnemies() {
+    m_bats.clear();
+    m_skeletons.clear();
+    m_bats.emplace_back(80.0f, 60.0f);
+    m_bats.emplace_back(240.0f, 60.0f);
+    m_skeletons.emplace_back(100.0f, 150.0f);
+    m_skeletons.emplace_back(220.0f, 150.0f);
+}
+
 void DungeonScene::reset() {
     m_dungeon.reset();
     m_player = Core::Player(152.0f, 180.0f);
@@ -23,6 +32,8 @@ void DungeonScene::reset() {
     m_bannerTimer = 0.0f;
     m_wantsExitToOverworld = false;
     m_arrows.clear();
+    m_itemDrops.clear();
+    spawnArenaEnemies();
     m_dialogueBox.close();
 
     m_camera.offset = Vector2{0.0f, 0.0f};
@@ -40,6 +51,11 @@ void DungeonScene::enterDungeon(const Core::Player& overworldPlayer) {
     m_wantsExitToOverworld = false;
     m_arrows.clear();
     m_dialogueBox.close();
+
+    const auto* r4 = m_dungeon.getRoom(4);
+    if (r4 && !r4->arenaCleared && m_bats.empty() && m_skeletons.empty()) {
+        spawnArenaEnemies();
+    }
 }
 
 void DungeonScene::update(float dt) {
@@ -50,6 +66,14 @@ void DungeonScene::update(float dt) {
             m_player.setPosition(Core::Vec2{152.0f, 180.0f});
             m_player.setFacing(Core::Direction::Up);
             m_dungeon.setCurrentRoomId(1);
+
+            auto* r4 = m_dungeon.getRoom(4);
+            if (r4 && !r4->arenaCleared) {
+                r4->arenaLocked = false;
+                r4->setDoor(Core::Direction::Down, Core::DoorState::Open);
+                r4->setDoor(Core::Direction::Right, Core::DoorState::Open);
+                spawnArenaEnemies();
+            }
         }
         return;
     }
@@ -128,6 +152,49 @@ void DungeonScene::update(float dt) {
             arrow.deactivate();
             continue;
         }
+
+        // Check collision with Bats and Skeletons in Room 4
+        if (m_dungeon.getCurrentRoomId() == 4) {
+            for (auto& bat : m_bats) {
+                if (!bat.isDead() && arrow.getHitbox().overlaps(bat.getHitbox())) {
+                    if (bat.takeDamage(arrow.getDamage())) {
+                        Render::AudioPlayer::instance().playEnemyDefeat();
+                        if ((static_cast<int>(bat.getPosition().x * 3 + bat.getPosition().y * 7) % 10) < 3) {
+                            Core::ItemDrop drop;
+                            drop.pos = bat.getPosition();
+                            drop.type = Core::ItemType::HeartRecovery;
+                            drop.active = true;
+                            m_itemDrops.push_back(drop);
+                        }
+                    }
+                    arrow.deactivate();
+                    break;
+                }
+            }
+            if (!arrow.isActive()) continue;
+
+            for (auto& skel : m_skeletons) {
+                if (!skel.isDead() && arrow.getHitbox().overlaps(skel.getHitbox())) {
+                    Core::Vec2 kb = Core::calculateKnockback(arrow.getPosition(), skel.getPosition(), 140.0f);
+                    if (skel.takeDamage(arrow.getDamage(), kb)) {
+                        if (skel.isDead()) {
+                            Render::AudioPlayer::instance().playEnemyDefeat();
+                            if ((static_cast<int>(skel.getPosition().x * 5 + skel.getPosition().y * 3) % 10) < 4) {
+                                Core::ItemDrop drop;
+                                drop.pos = skel.getPosition();
+                                drop.type = Core::ItemType::HeartRecovery;
+                                drop.active = true;
+                                m_itemDrops.push_back(drop);
+                            }
+                        } else {
+                            Render::AudioPlayer::instance().playHit();
+                        }
+                    }
+                    arrow.deactivate();
+                    break;
+                }
+            }
+        }
     }
     std::erase_if(m_arrows, [](const Core::Arrow& a) { return !a.isActive(); });
 
@@ -140,22 +207,145 @@ void DungeonScene::update(float dt) {
 
     m_player.updateInDungeon(dt, input, m_dungeon);
 
-    // 8. Pressure plate trigger
+    // 8. Arena entry lock and key door unlocking
+    if (m_dungeon.checkArenaEntryLock()) {
+        Render::AudioPlayer::instance().playEnemyDefeat();
+    }
+
+    if (m_dungeon.tryUnlockDoor(m_player.getPosition(), m_player.getFacing(), m_player.getInventory())) {
+        Render::AudioPlayer::instance().playSecretChime();
+        m_dialogueBox.show("Unlocked the Boss Sanctum door!");
+    }
+
+    // 9. Room 4 Monster Arena combat, AI, and item drops
+    if (m_dungeon.getCurrentRoomId() == 4) {
+        // Sword attacks on Bats and Skeletons
+        if (m_player.isAttacking()) {
+            Core::Rect swordBox = m_player.getCurrentSwordHitbox();
+
+            for (auto& bat : m_bats) {
+                if (!bat.isDead() && swordBox.overlaps(bat.getHitbox())) {
+                    if (bat.takeDamage(1)) {
+                        Render::AudioPlayer::instance().playEnemyDefeat();
+                        if ((static_cast<int>(bat.getPosition().x * 3 + bat.getPosition().y * 7) % 10) < 3) {
+                            Core::ItemDrop drop;
+                            drop.pos = bat.getPosition();
+                            drop.type = Core::ItemType::HeartRecovery;
+                            drop.active = true;
+                            m_itemDrops.push_back(drop);
+                        }
+                    }
+                }
+            }
+
+            for (auto& skel : m_skeletons) {
+                if (!skel.isDead() && swordBox.overlaps(skel.getHitbox())) {
+                    Core::Vec2 kb = Core::calculateKnockback(m_player.getPosition(), skel.getPosition(), 150.0f);
+                    if (skel.takeDamage(1, kb)) {
+                        if (skel.isDead()) {
+                            Render::AudioPlayer::instance().playEnemyDefeat();
+                            if ((static_cast<int>(skel.getPosition().x * 5 + skel.getPosition().y * 3) % 10) < 4) {
+                                Core::ItemDrop drop;
+                                drop.pos = skel.getPosition();
+                                drop.type = Core::ItemType::HeartRecovery;
+                                drop.active = true;
+                                m_itemDrops.push_back(drop);
+                            }
+                        } else {
+                            Render::AudioPlayer::instance().playHit();
+                        }
+                    }
+                }
+            }
+        }
+
+        // Update Bats and damage player
+        for (auto& bat : m_bats) {
+            if (bat.isDead()) continue;
+            bat.update(dt, m_player.getPosition());
+
+            if (bat.getHitbox().overlaps(m_player.getWorldHitbox())) {
+                if (Core::isAttackBlockedByShield(m_player.getPosition(), m_player.getFacing(), bat.getPosition())) {
+                    Render::AudioPlayer::instance().playHit();
+                } else {
+                    auto res = m_player.takeDamage(1);
+                    if (res.damaged) {
+                        Render::AudioPlayer::instance().playPlayerHurt();
+                    }
+                }
+            }
+        }
+
+        // Update Skeletons and damage player
+        for (auto& skel : m_skeletons) {
+            if (skel.isDead()) continue;
+            skel.update(dt, m_player.getPosition(), m_dungeon);
+
+            if (skel.getHitbox().overlaps(m_player.getWorldHitbox())) {
+                if (Core::isAttackBlockedByShield(m_player.getPosition(), m_player.getFacing(), skel.getPosition())) {
+                    Render::AudioPlayer::instance().playHit();
+                    Core::Vec2 repel = Core::calculateKnockback(m_player.getPosition(), skel.getPosition(), 90.0f);
+                    skel.takeDamage(0, repel);
+                } else {
+                    auto res = m_player.takeDamage(1);
+                    if (res.damaged) {
+                        Render::AudioPlayer::instance().playPlayerHurt();
+                    }
+                }
+            }
+        }
+
+        // Check if arena is now cleared
+        bool allBatsDead = std::all_of(m_bats.begin(), m_bats.end(), [](const Core::Bat& b) { return b.isDead(); });
+        bool allSkelsDead = std::all_of(m_skeletons.begin(), m_skeletons.end(), [](const Core::Skeleton& s) { return s.isDead(); });
+        if (allBatsDead && allSkelsDead) {
+            if (m_dungeon.clearArena()) {
+                Render::AudioPlayer::instance().playSecretChime();
+                // Spawn SmallKey drop at room center
+                Core::ItemDrop keyDrop;
+                keyDrop.pos = Core::Vec2(152.0f, 112.0f);
+                keyDrop.type = Core::ItemType::SmallKey;
+                keyDrop.active = true;
+                m_itemDrops.push_back(keyDrop);
+            }
+        }
+
+        // Update and collect item drops in Room 4
+        for (auto& drop : m_itemDrops) {
+            if (!drop.active) continue;
+            drop.update(dt);
+            if (drop.getHitbox().overlaps(m_player.getWorldHitbox())) {
+                if (drop.type == Core::ItemType::SmallKey) {
+                    m_player.getInventory().addKeys(1);
+                    Render::AudioPlayer::instance().playSecretChime();
+                    m_dialogueBox.show("Obtained a Small Key! Use it to unlock the Boss Gate in Room 5.");
+                    drop.active = false;
+                } else if (drop.type == Core::ItemType::HeartRecovery) {
+                    m_player.heal(2);
+                    Render::AudioPlayer::instance().playSecretChime();
+                    drop.active = false;
+                }
+            }
+        }
+        std::erase_if(m_itemDrops, [](const Core::ItemDrop& d) { return !d.active; });
+    }
+
+    // 10. Pressure plate trigger
     if (m_dungeon.checkPlateTrigger(m_player.getWorldHitbox())) {
         Render::AudioPlayer::instance().playSecretChime();
     }
 
-    // 9. Doorway transition trigger
+    // 11. Doorway transition trigger
     m_dungeon.checkDoorwayTransition(m_player.getWorldHitbox(), m_player.getFacing(), m_player.getPosition());
 
-    // 10. Overworld stairs exit check (in Room 1)
+    // 12. Overworld stairs exit check (in Room 1)
     if (m_dungeon.getCurrentRoomId() == 1 &&
         m_player.getFacing() == Core::Direction::Down &&
         m_dungeon.checkStairsExit(m_player.getWorldHitbox())) {
         m_wantsExitToOverworld = true;
     }
 
-    // 11. Snap camera to current room
+    // 13. Snap camera to current room
     Core::Vec2 cam = m_dungeon.getCameraOffset();
     m_camera.target = Vector2{cam.x, cam.y};
 }
@@ -165,6 +355,7 @@ void DungeonScene::renderRoom(const Core::DungeonRoom& room) {
     Texture2D floorTex = assets.getTexture("dungeon_floor");
     Texture2D wallTex = assets.getTexture("dungeon_wall");
     Texture2D doorClosedTex = assets.getTexture("dungeon_door_closed");
+    Texture2D doorLockedTex = assets.getTexture("dungeon_door_locked");
     Texture2D doorOpenTex = assets.getTexture("dungeon_door_open");
     Texture2D plateUpTex = assets.getTexture("pressure_plate_up");
     Texture2D plateDownTex = assets.getTexture("pressure_plate_down");
@@ -219,7 +410,9 @@ void DungeonScene::renderRoom(const Core::DungeonRoom& room) {
                 Core::DoorState ds = room.getDoor(Core::Direction::Up);
                 if (ds == Core::DoorState::Open) {
                     DrawTexture(doorOpenTex, px, py, WHITE);
-                } else if (ds == Core::DoorState::Closed || ds == Core::DoorState::Locked) {
+                } else if (ds == Core::DoorState::Locked) {
+                    DrawTexture(doorLockedTex, px, py, WHITE);
+                } else if (ds == Core::DoorState::Closed) {
                     DrawTexture(doorClosedTex, px, py, WHITE);
                 } else {
                     DrawTexture(wallTex, px, py, WHITE);
@@ -232,7 +425,9 @@ void DungeonScene::renderRoom(const Core::DungeonRoom& room) {
                 Core::DoorState ds = room.getDoor(Core::Direction::Down);
                 if (ds == Core::DoorState::Open) {
                     DrawTexture(doorOpenTex, px, py, WHITE);
-                } else if (ds == Core::DoorState::Closed || ds == Core::DoorState::Locked) {
+                } else if (ds == Core::DoorState::Locked) {
+                    DrawTexture(doorLockedTex, px, py, WHITE);
+                } else if (ds == Core::DoorState::Closed) {
                     DrawTexture(doorClosedTex, px, py, WHITE);
                 } else {
                     DrawTexture(wallTex, px, py, WHITE);
@@ -245,7 +440,9 @@ void DungeonScene::renderRoom(const Core::DungeonRoom& room) {
                 Core::DoorState ds = room.getDoor(Core::Direction::Left);
                 if (ds == Core::DoorState::Open) {
                     DrawTexture(doorOpenTex, px, py, WHITE);
-                } else if (ds == Core::DoorState::Closed || ds == Core::DoorState::Locked) {
+                } else if (ds == Core::DoorState::Locked) {
+                    DrawTexture(doorLockedTex, px, py, WHITE);
+                } else if (ds == Core::DoorState::Closed) {
                     DrawTexture(doorClosedTex, px, py, WHITE);
                 } else {
                     DrawTexture(wallTex, px, py, WHITE);
@@ -258,7 +455,9 @@ void DungeonScene::renderRoom(const Core::DungeonRoom& room) {
                 Core::DoorState ds = room.getDoor(Core::Direction::Right);
                 if (ds == Core::DoorState::Open) {
                     DrawTexture(doorOpenTex, px, py, WHITE);
-                } else if (ds == Core::DoorState::Closed || ds == Core::DoorState::Locked) {
+                } else if (ds == Core::DoorState::Locked) {
+                    DrawTexture(doorLockedTex, px, py, WHITE);
+                } else if (ds == Core::DoorState::Closed) {
                     DrawTexture(doorClosedTex, px, py, WHITE);
                 } else {
                     DrawTexture(wallTex, px, py, WHITE);
@@ -337,6 +536,49 @@ void DungeonScene::render() {
             int ax = static_cast<int>(rx + arrow.getPosition().x);
             int ay = static_cast<int>(ry + arrow.getPosition().y);
             DrawTexture(arrowTex, ax, ay, WHITE);
+        }
+    }
+
+    // Render Room 4 entities (Bats, Skeletons, Item Drops)
+    const auto* r4 = m_dungeon.getRoom(4);
+    if (r4) {
+        float ox = r4->gridX * Core::DungeonRoom::ROOM_WIDTH;
+        float oy = r4->gridY * Core::DungeonRoom::ROOM_HEIGHT;
+
+        // Render Bats
+        for (const auto& bat : m_bats) {
+            if (bat.isDead()) continue;
+            Texture2D tex = assets.getTexture(bat.getTextureName());
+            int bx = static_cast<int>(ox + bat.getPosition().x);
+            int by = static_cast<int>(oy + bat.getPosition().y);
+            if (bat.isHurt()) {
+                DrawTexture(tex, bx, by, Color{255, 120, 120, 220});
+            } else {
+                DrawTexture(tex, bx, by, WHITE);
+            }
+        }
+
+        // Render Skeletons
+        for (const auto& skel : m_skeletons) {
+            if (skel.isDead()) continue;
+            Texture2D tex = assets.getTexture(skel.getTextureName());
+            int sx = static_cast<int>(ox + skel.getPosition().x);
+            int sy = static_cast<int>(oy + skel.getPosition().y);
+            if (skel.isHurt()) {
+                DrawTexture(tex, sx, sy, Color{255, 120, 120, 220});
+            } else {
+                DrawTexture(tex, sx, sy, WHITE);
+            }
+        }
+
+        // Render Item Drops
+        for (const auto& drop : m_itemDrops) {
+            if (!drop.active) continue;
+            if (drop.isBlinking()) continue;
+            Texture2D tex = assets.getTexture(drop.getTextureName());
+            int dx = static_cast<int>(ox + drop.pos.x);
+            int dy = static_cast<int>(oy + drop.pos.y);
+            DrawTexture(tex, dx, dy, WHITE);
         }
     }
 

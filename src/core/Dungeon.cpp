@@ -111,6 +111,9 @@ void Dungeon::buildRooms() {
         r4.gridX = 1;
         r4.gridY = 0;
         r4.name = "Monster Arena";
+        r4.isArena = true;
+        r4.arenaCleared = false;
+        r4.arenaLocked = false;
 
         // South door leads back to Room 2
         r4.setDoor(Direction::Down, DoorState::Open);
@@ -515,6 +518,76 @@ Vec2 Dungeon::getTransitionPlayerPos() const {
         m_transition.startPlayerPos.x + (m_transition.targetPlayerPos.x - m_transition.startPlayerPos.x) * t,
         m_transition.startPlayerPos.y + (m_transition.targetPlayerPos.y - m_transition.startPlayerPos.y) * t
     };
+}
+
+bool Dungeon::checkArenaEntryLock() {
+    auto& room = getCurrentRoom();
+    if (room.isArena && !room.arenaCleared && !room.arenaLocked) {
+        return room.lockArenaDoors();
+    }
+    return false;
+}
+
+bool Dungeon::clearArena() {
+    auto& room = getCurrentRoom();
+    if (room.isArena && room.arenaLocked && !room.arenaCleared) {
+        return room.unlockArenaDoors();
+    }
+    return false;
+}
+
+static Direction getOppositeDirection(Direction dir) {
+    switch (dir) {
+        case Direction::Down:  return Direction::Up;
+        case Direction::Up:    return Direction::Down;
+        case Direction::Left:  return Direction::Right;
+        case Direction::Right: return Direction::Left;
+    }
+    return Direction::Down;
+}
+
+bool Dungeon::tryUnlockDoor(const Vec2& playerPos, Direction facing, Inventory& inventory) {
+    auto& room = getCurrentRoom();
+    if (room.isArena && room.arenaLocked) return false;
+    if (room.getDoor(facing) != DoorState::Locked) return false;
+
+    // Check distance / proximity to door
+    bool inRange = false;
+    constexpr float DOOR_MIN_X = 130.0f;
+    constexpr float DOOR_MAX_X = 190.0f;
+    constexpr float DOOR_MIN_Y = 86.0f;
+    constexpr float DOOR_MAX_Y = 154.0f;
+
+    switch (facing) {
+        case Direction::Up:
+            inRange = (playerPos.y <= 36.0f && playerPos.x >= DOOR_MIN_X && playerPos.x <= DOOR_MAX_X);
+            break;
+        case Direction::Down:
+            inRange = (playerPos.y >= DungeonRoom::ROOM_HEIGHT - 36.0f && playerPos.x >= DOOR_MIN_X && playerPos.x <= DOOR_MAX_X);
+            break;
+        case Direction::Left:
+            inRange = (playerPos.x <= 36.0f && playerPos.y >= DOOR_MIN_Y && playerPos.y <= DOOR_MAX_Y);
+            break;
+        case Direction::Right:
+            inRange = (playerPos.x >= DungeonRoom::ROOM_WIDTH - 36.0f && playerPos.y >= DOOR_MIN_Y && playerPos.y <= DOOR_MAX_Y);
+            break;
+    }
+
+    if (!inRange) return false;
+
+    if (inventory.useKey()) {
+        room.setDoor(facing, DoorState::Open);
+        int connectedId = room.getConnectedRoom(facing);
+        if (connectedId != -1) {
+            auto* targetRoom = getRoom(connectedId);
+            if (targetRoom) {
+                targetRoom->setDoor(getOppositeDirection(facing), DoorState::Open);
+            }
+        }
+        return true;
+    }
+
+    return false;
 }
 
 } // namespace Core

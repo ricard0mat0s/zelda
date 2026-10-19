@@ -505,6 +505,158 @@ for mname, mrows in m8_sprite_list:
             mpix.append(m8_pal.get(ch, (0, 0, 0, 0)))
     assets.append((mname, mpix))
 
+# Milestone 9 sprites: Bat, Skeleton, Small Key, Locked Boss Door
+m9_pal = {
+    '.': (0, 0, 0, 0),
+    'O': (11, 12, 16, 255),    # Black outline
+    'w': (255, 255, 255, 255),# Pure white
+    's': (203, 213, 225, 255),# Bone/slate light
+    'S': (148, 163, 184, 255),# Bone/slate shadow
+    'd': (71, 85, 105, 255),  # Dark slate
+    'r': (220, 38, 38, 255),  # Crimson eyes
+    'R': (153, 27, 27, 255),  # Dark crimson
+    'p': (88, 28, 135, 255),  # Dark purple
+    'P': (147, 51, 234, 255), # Bright purple
+    'v': (192, 132, 252, 255),# Lavender
+    'g': (234, 179, 8, 255),  # Gold
+    'Y': (250, 204, 21, 255), # Bright gold
+    'H': (148, 163, 184, 255),# Highlight slate
+    'L': (100, 116, 139, 255),# Mid slate
+    'D': (30, 41, 59, 255),   # Dark slate
+    'I': (71, 85, 105, 255),  # Iron bar
+    'B': (15, 23, 42, 255),   # Deep slate
+}
+
+bat_0_rows = [
+    "................",
+    ".OPPO......OPPO.",
+    "OPvvPO....OPvvPO",
+    "OPvvvPO..OPvvvPO",
+    ".OPvvvOOOOvvvPO.",
+    "..OPvvPPPPvvPO..",
+    "...OPPP..PPPO...",
+    "....OOPPPOO.....",
+    "....OPwrrwPO....",
+    "...OPPOrrOPPO...",
+    "...OPPPPPPPPO...",
+    "....OPw..wPO....",
+    ".....OPPPO......",
+    "......O..O......",
+    "................",
+    "................",
+]
+
+bat_1_rows = [
+    "................",
+    "................",
+    ".....OOOOOO.....",
+    "....OPP..PPO....",
+    "....OPwrrwPO....",
+    "...OPPOrrOPPO...",
+    "..OOPPPPPPPPOO..",
+    ".OPvvPPPPPPvvPO.",
+    "OPvvvPO..OPvvvPO",
+    "OPvvPO....OPvvPO",
+    ".OPPO......OPPO.",
+    "...O........O...",
+    "................",
+    "................",
+    "................",
+    "................",
+]
+
+skeleton_0_rows = [
+    ".....OOOOOO.....",
+    "....OwwwwwwO....",
+    "...OwsrwwrswO...",
+    "...OwsrwwrswO...",
+    "....OwwwwwwO....",
+    ".....OssssO.....",
+    "....OwwwwwwO....",
+    "...OswswwswsO...",
+    "...OsdswwsdsO...",
+    "...Os.OwwO.sO...",
+    "......OwwO......",
+    ".....OswwsO.....",
+    ".....OswwsO.....",
+    ".....Osw.wsO....",
+    "....OwwO.OwwO...",
+    "....OOO...OOO...",
+]
+
+skeleton_1_rows = [
+    ".....OOOOOO.....",
+    "....OwwwwwwO....",
+    "...OwsrwwrswO...",
+    "...OwsrwwrswO...",
+    "....OwwwwwwO....",
+    ".....OssssO.....",
+    "....OwwwwwwO....",
+    "...OswswwswsO...",
+    "...OsdswwsdsO...",
+    "...Os.OwwO.sO...",
+    "......OwwO......",
+    ".....OswwsO.....",
+    "....Osww..sO....",
+    "...OwwO...wsO...",
+    "...OOO....OwwO..",
+    "...........OOO..",
+]
+
+small_key_rows = [
+    "................",
+    ".....OOOOOO.....",
+    "....OYYggggO....",
+    "...OYg....gYO...",
+    "...OY......YO...",
+    "...OYg....gYO...",
+    "....OYYggggO....",
+    ".....OggYYO.....",
+    "......OgYO......",
+    "......OgYO......",
+    "......OgYYgO....",
+    "......OgYYgO....",
+    "......OgYO......",
+    "......OgYYgO....",
+    "......OgYYgO....",
+    ".......OOOO.....",
+]
+
+dungeon_door_locked_rows = [
+    "HHHHHHHHHHHHHHHH",
+    "HLLLLLLLLLLLLLLH",
+    "HLDDDDDDDDDDDDLH",
+    "HLDOOIOOIOOIOODH",
+    "HLDOOIOOIOOIOODH",
+    "HLDIIIIIIIIIIIDH",
+    "HLDOI.OGGGO.IODH",
+    "HLDOIOGYYYGOIODH",
+    "HLDIIOGYrrYGIIDH",
+    "HLDOIOGYOrYGIODH",
+    "HLDOI.OGGGO.IODH",
+    "HLDOOIOOIOOIOODH",
+    "HLDIIIIIIIIIIIDH",
+    "HLDOOIOOIOOIOODH",
+    "HLDOOIOOIOOIOODH",
+    "BBBBBBBBBBBBBBBB",
+]
+
+m9_sprite_list = [
+    ('bat_0', bat_0_rows),
+    ('bat_1', bat_1_rows),
+    ('skeleton_0', skeleton_0_rows),
+    ('skeleton_1', skeleton_1_rows),
+    ('small_key', small_key_rows),
+    ('dungeon_door_locked', dungeon_door_locked_rows),
+]
+
+for mname, mrows in m9_sprite_list:
+    mpix = []
+    for r in mrows:
+        for ch in r:
+            mpix.append(m9_pal.get(ch, (0, 0, 0, 0)))
+    assets.append((mname, mpix))
+
 
 
 # Write GeneratedAssets.hpp

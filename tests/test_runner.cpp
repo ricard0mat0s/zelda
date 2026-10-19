@@ -17,6 +17,7 @@
 #include "../src/core/ItemDrop.hpp"
 #include "../src/core/Dungeon.hpp"
 #include "../src/core/Projectile.hpp"
+#include "../src/core/DungeonEnemies.hpp"
 #include "../src/render/GeneratedAssets.hpp"
 
 using namespace Core;
@@ -125,7 +126,7 @@ void test_sound_generator() {
 
 void test_generated_assets() {
     const auto& assets = Render::getAllGeneratedAssets();
-    TEST_ASSERT(assets.size() == 41, "Must contain exactly 41 procedural pixel art assets");
+    TEST_ASSERT(assets.size() == 47, "Must contain exactly 47 procedural pixel art assets");
 
     for (const auto& asset : assets) {
         TEST_ASSERT(asset.width == 16, "Asset width must be 16");
@@ -156,6 +157,12 @@ void test_generated_assets() {
     TEST_ASSERT(Render::findGeneratedAsset("crystal_switch_blue") != nullptr, "crystal_switch_blue must exist");
     TEST_ASSERT(Render::findGeneratedAsset("crystal_switch_active") != nullptr, "crystal_switch_active must exist");
     TEST_ASSERT(Render::findGeneratedAsset("chasm") != nullptr, "chasm must exist");
+    TEST_ASSERT(Render::findGeneratedAsset("bat_0") != nullptr, "bat_0 must exist");
+    TEST_ASSERT(Render::findGeneratedAsset("bat_1") != nullptr, "bat_1 must exist");
+    TEST_ASSERT(Render::findGeneratedAsset("skeleton_0") != nullptr, "skeleton_0 must exist");
+    TEST_ASSERT(Render::findGeneratedAsset("skeleton_1") != nullptr, "skeleton_1 must exist");
+    TEST_ASSERT(Render::findGeneratedAsset("small_key") != nullptr, "small_key must exist");
+    TEST_ASSERT(Render::findGeneratedAsset("dungeon_door_locked") != nullptr, "dungeon_door_locked must exist");
     TEST_ASSERT(Render::findGeneratedAsset("non_existent_sprite") == nullptr, "non_existent_sprite must return nullptr");
 
     testsPassed++;
@@ -693,6 +700,146 @@ void test_crystal_switch_arrow_trigger() {
     testsPassed++;
 }
 
+void test_bat_movement_and_damage() {
+    Bat bat(100.0f, 100.0f);
+    TEST_ASSERT(bat.getHP() == 1, "Bat initial HP must be 1");
+    TEST_ASSERT(!bat.isDead(), "Bat must start alive");
+    TEST_ASSERT(!bat.isHurt(), "Bat must not start hurt");
+    TEST_ASSERT(bat.getTextureName() == "bat_0", "Initial texture is bat_0");
+
+    // Animation frame changes after 0.12s
+    bat.update(0.15f, Vec2(250.0f, 250.0f));
+    TEST_ASSERT(bat.getTextureName() == "bat_1", "Bat texture alternates on flapping");
+
+    // Close player triggers swoop
+    Vec2 closePlayer(110.0f, 100.0f);
+    bat.update(0.1f, closePlayer);
+    TEST_ASSERT(bat.getHitbox().width == 12.0f && bat.getHitbox().height == 10.0f, "Bat hitbox valid");
+
+    // Take damage
+    bool hit = bat.takeDamage(1);
+    TEST_ASSERT(hit, "Bat takes damage");
+    TEST_ASSERT(bat.isDead(), "Bat dies with 1 damage");
+    TEST_ASSERT(bat.getHP() <= 0, "Bat HP is 0 or less");
+    TEST_ASSERT(!bat.takeDamage(1), "Dead bat cannot take further damage");
+
+    testsPassed++;
+}
+
+void test_skeleton_patrol_chase_and_knockback() {
+    Dungeon dungeon;
+    dungeon.init();
+
+    Skeleton skel(160.0f, 120.0f);
+    TEST_ASSERT(skel.getHP() == 3, "Skeleton initial HP must be 3");
+    TEST_ASSERT(!skel.isDead(), "Skeleton must start alive");
+    TEST_ASSERT(!skel.isHurt(), "Skeleton must not start hurt");
+    TEST_ASSERT(skel.getFacing() == Direction::Down, "Initial facing is Down");
+
+    // Player far away -> idle
+    skel.update(0.1f, Vec2(300.0f, 20.0f), dungeon);
+    TEST_ASSERT(!skel.isDead(), "Still alive");
+
+    // Player nearby -> chases and turns towards player
+    skel.update(0.1f, Vec2(160.0f, 180.0f), dungeon);
+    TEST_ASSERT(skel.getFacing() == Direction::Down, "Chasing down faces Down");
+
+    // Apply sword strike with knockback
+    Vec2 kb(0.0f, -120.0f);
+    bool hit = skel.takeDamage(1, kb);
+    TEST_ASSERT(hit, "Skeleton takes damage");
+    TEST_ASSERT(skel.getHP() == 2, "Skeleton HP reduces to 2");
+    TEST_ASSERT(skel.isHurt(), "Skeleton is hurt");
+
+    // Knockback update
+    float prevY = skel.getPosition().y;
+    skel.update(0.05f, Vec2(160.0f, 180.0f), dungeon);
+    TEST_ASSERT(skel.getPosition().y < prevY, "Knockback moves skeleton upwards away from strike");
+
+    // Finish off skeleton (advance past hurt timer)
+    skel.update(0.35f, Vec2(160.0f, 180.0f), dungeon);
+    TEST_ASSERT(!skel.isHurt(), "Skeleton is no longer hurt");
+    skel.takeDamage(1, Vec2(0.0f, 0.0f));
+    TEST_ASSERT(skel.getHP() == 1, "Skeleton HP is 1");
+
+    skel.update(0.35f, Vec2(160.0f, 180.0f), dungeon);
+    skel.takeDamage(1, Vec2(0.0f, 0.0f));
+    TEST_ASSERT(skel.isDead(), "Skeleton dies after taking 3 total damage");
+
+    testsPassed++;
+}
+
+void test_monster_arena_lock_and_key_unlock() {
+    Dungeon dungeon;
+    dungeon.init();
+
+    // 1. Enter Room 4 (Monster Arena)
+    dungeon.setCurrentRoomId(4);
+    auto& r4 = dungeon.getCurrentRoom();
+    TEST_ASSERT(r4.isArena, "Room 4 must be flagged as an arena");
+    TEST_ASSERT(!r4.arenaCleared, "Room 4 arena is not initially cleared");
+    TEST_ASSERT(!r4.arenaLocked, "Room 4 arena is not initially locked");
+
+    // Player entry locks the doors
+    bool locked = dungeon.checkArenaEntryLock();
+    TEST_ASSERT(locked, "Entry lock triggers upon entering arena");
+    TEST_ASSERT(r4.arenaLocked, "Room 4 is now locked");
+    TEST_ASSERT(r4.getDoor(Direction::Down) == DoorState::Locked, "South door is locked");
+    TEST_ASSERT(r4.getDoor(Direction::Right) == DoorState::Locked, "East door is locked");
+
+    // Calling again returns false (already locked)
+    TEST_ASSERT(!dungeon.checkArenaEntryLock(), "Already locked cannot lock again");
+
+    // 2. Clear arena (all monsters defeated)
+    bool cleared = dungeon.clearArena();
+    TEST_ASSERT(cleared, "Arena unlocks when cleared");
+    TEST_ASSERT(!r4.arenaLocked, "Room 4 is no longer locked");
+    TEST_ASSERT(r4.arenaCleared, "Room 4 is marked cleared");
+    TEST_ASSERT(r4.getDoor(Direction::Down) == DoorState::Open, "South door opens");
+    TEST_ASSERT(r4.getDoor(Direction::Right) == DoorState::Open, "East door opens");
+
+    // 3. Test SmallKey ItemDrop persistence & collection
+    ItemDrop keyDrop;
+    keyDrop.pos = Vec2(160.0f, 120.0f);
+    keyDrop.type = ItemType::SmallKey;
+    keyDrop.active = true;
+    keyDrop.lifetime = 10.0f;
+    keyDrop.update(25.0f);
+    TEST_ASSERT(keyDrop.active, "SmallKey must never despawn over time");
+    TEST_ASSERT(keyDrop.getTextureName() == "small_key", "Key has small_key texture");
+
+    Inventory inventory;
+    TEST_ASSERT(inventory.keys == 0, "Initial keys is 0");
+    inventory.addKeys(1);
+    TEST_ASSERT(inventory.keys == 1, "Keys count is 1 after pickup");
+
+    // 4. Test Room 5 Boss Gate unlocking
+    dungeon.setCurrentRoomId(5);
+    auto& r5 = dungeon.getCurrentRoom();
+    TEST_ASSERT(r5.getDoor(Direction::Up) == DoorState::Locked, "Room 5 North door starts locked");
+
+    // Out of range unlock fails
+    TEST_ASSERT(!dungeon.tryUnlockDoor(Vec2(50.0f, 100.0f), Direction::Up, inventory), "Cannot unlock from far away");
+    TEST_ASSERT(inventory.keys == 1, "Key not consumed on failed unlock");
+
+    // In front of locked North door facing Up
+    Vec2 doorPos(160.0f, 25.0f);
+    bool unlocked = dungeon.tryUnlockDoor(doorPos, Direction::Up, inventory);
+    TEST_ASSERT(unlocked, "Key successfully unlocks North door");
+    TEST_ASSERT(inventory.keys == 0, "Key is consumed");
+    TEST_ASSERT(r5.getDoor(Direction::Up) == DoorState::Open, "Room 5 North door is now Open");
+
+    // Connected Room 6 South door is also Open
+    const auto* r6 = dungeon.getRoom(6);
+    TEST_ASSERT(r6 != nullptr, "Room 6 exists");
+    TEST_ASSERT(r6->getDoor(Direction::Down) == DoorState::Open, "Room 6 South door opened from other side");
+
+    // Trying again without keys or already open door returns false
+    TEST_ASSERT(!dungeon.tryUnlockDoor(doorPos, Direction::Up, inventory), "Cannot unlock already open door");
+
+    testsPassed++;
+}
+
 int main() {
     std::cout << "=== Running Headless Core Tests ===" << std::endl;
     test_vector_math();
@@ -718,6 +865,9 @@ int main() {
     test_arrow_projectile();
     test_treasure_chest_in_room_3();
     test_crystal_switch_arrow_trigger();
+    test_bat_movement_and_damage();
+    test_skeleton_patrol_chase_and_knockback();
+    test_monster_arena_lock_and_key_unlock();
 
     std::cout << "Tests Passed: " << testsPassed << " | Tests Failed: " << testsFailed << std::endl;
     return testsFailed == 0 ? 0 : 1;

@@ -5,7 +5,8 @@
 namespace Core {
 
 enum class ItemType {
-    HeartRecovery
+    HeartRecovery,
+    SmallKey
 };
 
 struct ItemDrop {
@@ -18,8 +19,17 @@ struct ItemDrop {
         return Rect(pos.x + 2.0f, pos.y + 2.0f, 12.0f, 12.0f);
     }
 
+    std::string getTextureName() const {
+        switch (type) {
+            case ItemType::HeartRecovery: return "heart_full";
+            case ItemType::SmallKey:      return "small_key";
+        }
+        return "heart_full";
+    }
+
     void update(float dt) {
         if (!active) return;
+        if (type == ItemType::SmallKey) return; // Keys do not expire
         lifetime -= dt;
         if (lifetime <= 0.0f) {
             active = false;

@@ -20,7 +20,7 @@ struct PixelAssetData {
     std::array<RgbaColor, 256> pixels;
 };
 
-const std::array<PixelAssetData, 41>& getAllGeneratedAssets();
+const std::array<PixelAssetData, 47>& getAllGeneratedAssets();
 const PixelAssetData* findGeneratedAsset(std::string_view name);
 
 } // namespace Render

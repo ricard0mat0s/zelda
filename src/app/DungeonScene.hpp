@@ -3,6 +3,9 @@
 #include "core/Dungeon.hpp"
 #include "core/Player.hpp"
 #include "core/Projectile.hpp"
+#include "core/DungeonEnemies.hpp"
+#include "core/ItemDrop.hpp"
+#include "core/Shield.hpp"
 #include "render/UIRenderer.hpp"
 #include "render/DialogueBox.hpp"
 #include "raylib.h"
@@ -33,6 +36,7 @@ public:
 
 private:
     void renderRoom(const Core::DungeonRoom& room);
+    void spawnArenaEnemies();
 
     Core::Dungeon m_dungeon;
     Core::Player m_player;
@@ -40,6 +44,9 @@ private:
     Render::DialogueBox m_dialogueBox;
 
     std::vector<Core::Arrow> m_arrows;
+    std::vector<Core::Bat> m_bats;
+    std::vector<Core::Skeleton> m_skeletons;
+    std::vector<Core::ItemDrop> m_itemDrops;
 
     Camera2D m_camera{};
     float m_bannerTimer = 0.0f;

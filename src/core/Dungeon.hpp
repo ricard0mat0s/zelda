@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/types.hpp"
+#include "core/Inventory.hpp"
 #include <array>
 #include <string>
 #include <vector>
@@ -136,6 +137,33 @@ struct DungeonRoom {
         connectedRooms[static_cast<size_t>(dir)] = roomId;
     }
 
+    bool isArena = false;
+    bool arenaCleared = false;
+    bool arenaLocked = false;
+
+    bool lockArenaDoors() {
+        if (!isArena || arenaCleared || arenaLocked) return false;
+        arenaLocked = true;
+        for (size_t i = 0; i < doors.size(); ++i) {
+            if (doors[i] != DoorState::None) {
+                doors[i] = DoorState::Locked;
+            }
+        }
+        return true;
+    }
+
+    bool unlockArenaDoors() {
+        if (!isArena || !arenaLocked) return false;
+        arenaLocked = false;
+        arenaCleared = true;
+        for (size_t i = 0; i < doors.size(); ++i) {
+            if (doors[i] != DoorState::None) {
+                doors[i] = DoorState::Open;
+            }
+        }
+        return true;
+    }
+
     Rect getStairsBounds() const {
         return Rect{stairsPos.x - 8.0f, stairsPos.y - 8.0f, 16.0f, 16.0f};
     }
@@ -198,6 +226,15 @@ public:
 
     // Checks if player can open treasure chest in current room; returns true if opened
     bool checkChestInteract(const Vec2& playerPos, Direction facing);
+
+    // Checks if current room is an arena and locks doors upon entry; returns true if newly locked
+    bool checkArenaEntryLock();
+
+    // Clears the arena in current room and unlocks doors; returns true if cleared
+    bool clearArena();
+
+    // Checks if player can unlock a locked door with a small key; returns true if unlocked
+    bool tryUnlockDoor(const Vec2& playerPos, Direction facing, Inventory& inventory);
 
     const RoomTransition& getTransition() const { return m_transition; }
     bool isTransitioning() const { return m_transition.active; }
