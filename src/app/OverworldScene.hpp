@@ -5,6 +5,7 @@
 #include "core/Slime.hpp"
 #include "core/ItemDrop.hpp"
 #include "core/Shield.hpp"
+#include "core/Projectile.hpp"
 #include "render/MapRenderer.hpp"
 #include "render/UIRenderer.hpp"
 #include "render/DialogueBox.hpp"
@@ -50,6 +51,7 @@ private:
     // Overworld entities and drops
     std::vector<Core::Slime> m_slimes;
     std::vector<Core::ItemDrop> m_itemDrops;
+    std::vector<Core::Arrow> m_arrows;
 
     bool m_wantsEnterDungeon = false;
 };

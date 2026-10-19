@@ -41,6 +41,33 @@ void UIRenderer::renderHearts(const Core::Health& health) {
     }
 }
 
+void UIRenderer::renderInventory(const Core::Inventory& inventory) {
+    auto& assets = AssetManager::instance();
+
+    // Top-right item slots
+    int rightX = Core::GameConfig::VIRTUAL_WIDTH - 24;
+    int slotY = 8;
+
+    // Slot [X]: Bow (if obtained)
+    if (inventory.hasBow) {
+        Texture2D bowTex = assets.getTexture("bow_icon");
+        DrawRectangle(rightX - 2, slotY - 2, 20, 20, Color{11, 12, 16, 200});
+        DrawRectangleLines(rightX - 2, slotY - 2, 20, 20, Color{212, 163, 115, 255});
+        DrawTexture(bowTex, rightX, slotY, WHITE);
+
+        // "X" badge
+        DrawText("X", rightX - 8, slotY + 4, 8, Color{250, 204, 21, 255});
+    }
+
+    // Keys counter (if any)
+    if (inventory.keys > 0) {
+        int keyX = rightX - (inventory.hasBow ? 36 : 0);
+        std::string keyStr = "K:" + std::to_string(inventory.keys);
+        DrawText(keyStr.c_str(), keyX + 1, slotY + 5, 8, Color{11, 12, 16, 255});
+        DrawText(keyStr.c_str(), keyX, slotY + 4, 8, Color{250, 204, 21, 255});
+    }
+}
+
 void UIRenderer::renderGameOver() {
     const char* overText = "GAME OVER";
     int textW = MeasureText(overText, 16);

@@ -30,6 +30,7 @@ void OverworldScene::reset() {
     m_slimes.emplace_back(420.0f, 250.0f);
 
     m_itemDrops.clear();
+    m_arrows.clear();
 
     m_camera.offset = Vector2{0.0f, 0.0f};
     m_camera.target = Vector2{0.0f, 0.0f};
@@ -91,6 +92,21 @@ void OverworldScene::update(float dt) {
         }
     }
 
+    // Secondary weapon: Bow & Arrow (X)
+    if (IsKeyPressed(KEY_X)) {
+        if (m_player.getInventory().hasBow && !m_player.isAttacking()) {
+            Core::Vec2 spawnPos = m_player.getPosition();
+            switch (m_player.getFacing()) {
+                case Core::Direction::Down:  spawnPos.y += 10.0f; break;
+                case Core::Direction::Up:    spawnPos.y -= 10.0f; break;
+                case Core::Direction::Left:  spawnPos.x -= 10.0f; break;
+                case Core::Direction::Right: spawnPos.x += 10.0f; break;
+            }
+            m_arrows.emplace_back(spawnPos, m_player.getFacing(), 240.0f);
+            Render::AudioPlayer::instance().playArrowShoot();
+        }
+    }
+
     // 4. Process movement input
     Core::MovementInput input;
     input.up = IsKeyDown(KEY_W) || IsKeyDown(KEY_UP);
@@ -99,6 +115,42 @@ void OverworldScene::update(float dt) {
     input.right = IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT);
 
     m_player.update(dt, input, m_map);
+
+    // Update arrows
+    for (auto& arrow : m_arrows) {
+        if (!arrow.isActive()) continue;
+        arrow.update(dt);
+
+        // Check collision with obstacles / map bounds
+        if (m_map.checkRectCollision(arrow.getHitbox())) {
+            arrow.deactivate();
+            continue;
+        }
+
+        // Check collision with slimes
+        for (auto& slime : m_slimes) {
+            if (!slime.isDead() && arrow.getHitbox().overlaps(slime.getHitbox())) {
+                Core::Vec2 kb = Core::calculateKnockback(arrow.getPosition(), slime.getPosition(), 140.0f);
+                if (slime.takeDamage(arrow.getDamage(), kb)) {
+                    if (slime.isDead()) {
+                        Render::AudioPlayer::instance().playEnemyDefeat();
+                        if ((static_cast<int>(slime.getPosition().x * 3 + slime.getPosition().y * 7) % 10) < 4) {
+                            Core::ItemDrop drop;
+                            drop.pos = slime.getPosition();
+                            drop.type = Core::ItemType::HeartRecovery;
+                            drop.active = true;
+                            m_itemDrops.push_back(drop);
+                        }
+                    } else {
+                        Render::AudioPlayer::instance().playHit();
+                    }
+                }
+                arrow.deactivate();
+                break;
+            }
+        }
+    }
+    std::erase_if(m_arrows, [](const Core::Arrow& a) { return !a.isActive(); });
 
     // 5. Update Slimes and Combat Interactions
     for (auto& slime : m_slimes) {
@@ -254,10 +306,21 @@ void OverworldScene::render() {
         DrawTexture(slashTex, sx, sy, WHITE);
     }
 
+    // Render active arrows
+    for (const auto& arrow : m_arrows) {
+        if (arrow.isActive()) {
+            Texture2D arrowTex = assets.getTexture(arrow.getTextureName());
+            int ax = static_cast<int>(arrow.getPosition().x);
+            int ay = static_cast<int>(arrow.getPosition().y);
+            DrawTexture(arrowTex, ax, ay, WHITE);
+        }
+    }
+
     EndMode2D();
 
     // 2. Screen-space HUD & Overlays
     m_uiRenderer.renderHearts(m_player.getHealth());
+    m_uiRenderer.renderInventory(m_player.getInventory());
 
     if (health.isDead()) {
         m_uiRenderer.renderGameOver();

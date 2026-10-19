@@ -22,6 +22,8 @@ void DungeonScene::reset() {
     m_player.setFacing(Core::Direction::Up);
     m_bannerTimer = 0.0f;
     m_wantsExitToOverworld = false;
+    m_arrows.clear();
+    m_dialogueBox.close();
 
     m_camera.offset = Vector2{0.0f, 0.0f};
     m_camera.target = Vector2{0.0f, 0.0f};
@@ -36,6 +38,8 @@ void DungeonScene::enterDungeon(const Core::Player& overworldPlayer) {
     m_player.setFacing(Core::Direction::Up);
     m_bannerTimer = 0.0f;
     m_wantsExitToOverworld = false;
+    m_arrows.clear();
+    m_dialogueBox.close();
 }
 
 void DungeonScene::update(float dt) {
@@ -50,14 +54,23 @@ void DungeonScene::update(float dt) {
         return;
     }
 
+    // 1. Dialogue box handling takes highest priority
+    if (m_dialogueBox.isOpen()) {
+        m_dialogueBox.update(dt);
+        if (IsKeyPressed(KEY_E) || IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) {
+            m_dialogueBox.advance();
+        }
+        return;
+    }
+
     m_bannerTimer += dt;
 
-    // 1. If room transition is active, advance timer and lock player control
+    // 2. If room transition is active, advance timer and lock player control
     if (m_dungeon.isTransitioning()) {
         m_dungeon.update(dt);
         if (!m_dungeon.isTransitioning()) {
-            // Transition just finished
             m_player.setPosition(m_dungeon.getTargetLocalPlayerPos());
+            m_arrows.clear(); // Clear arrows across transitions
         }
 
         // Smooth camera following during pan
@@ -66,14 +79,59 @@ void DungeonScene::update(float dt) {
         return;
     }
 
-    // 2. Attack trigger
+    // 3. Interact with treasure chest (Room 3)
+    if (IsKeyPressed(KEY_E) || IsKeyPressed(KEY_ENTER)) {
+        if (m_dungeon.checkChestInteract(m_player.getPosition(), m_player.getFacing())) {
+            m_player.getInventory().obtainBow();
+            Render::AudioPlayer::instance().playChestFanfare();
+            m_dialogueBox.show("Found the Bow & Quiver! Press [X] to fire arrows across chasms.");
+            return;
+        }
+    }
+
+    // 4. Primary sword attack
     if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_Z)) {
         if (m_player.startAttack()) {
             Render::AudioPlayer::instance().playSwordSlash();
         }
     }
 
-    // 3. Movement input
+    // 5. Secondary weapon: Bow & Arrow firing
+    if (IsKeyPressed(KEY_X)) {
+        if (m_player.getInventory().hasBow && !m_player.isAttacking()) {
+            Core::Vec2 spawnPos = m_player.getPosition();
+            switch (m_player.getFacing()) {
+                case Core::Direction::Down:  spawnPos.y += 10.0f; break;
+                case Core::Direction::Up:    spawnPos.y -= 10.0f; break;
+                case Core::Direction::Left:  spawnPos.x -= 10.0f; break;
+                case Core::Direction::Right: spawnPos.x += 10.0f; break;
+            }
+            m_arrows.emplace_back(spawnPos, m_player.getFacing(), 240.0f);
+            Render::AudioPlayer::instance().playArrowShoot();
+        }
+    }
+
+    // 6. Update active arrow projectiles
+    for (auto& arrow : m_arrows) {
+        if (!arrow.isActive()) continue;
+        arrow.update(dt);
+
+        // Check projectile collision with walls / obstacles
+        if (m_dungeon.checkProjectileCollision(arrow.getHitbox())) {
+            arrow.deactivate();
+            continue;
+        }
+
+        // Check collision with crystal switch in current room
+        if (m_dungeon.checkCrystalSwitchHit(arrow.getHitbox())) {
+            Render::AudioPlayer::instance().playSecretChime();
+            arrow.deactivate();
+            continue;
+        }
+    }
+    std::erase_if(m_arrows, [](const Core::Arrow& a) { return !a.isActive(); });
+
+    // 7. Movement input
     Core::MovementInput input;
     input.up = IsKeyDown(KEY_W) || IsKeyDown(KEY_UP);
     input.down = IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN);
@@ -82,22 +140,22 @@ void DungeonScene::update(float dt) {
 
     m_player.updateInDungeon(dt, input, m_dungeon);
 
-    // 4. Pressure plate trigger
+    // 8. Pressure plate trigger
     if (m_dungeon.checkPlateTrigger(m_player.getWorldHitbox())) {
         Render::AudioPlayer::instance().playSecretChime();
     }
 
-    // 5. Doorway transition trigger
+    // 9. Doorway transition trigger
     m_dungeon.checkDoorwayTransition(m_player.getWorldHitbox(), m_player.getFacing(), m_player.getPosition());
 
-    // 6. Overworld stairs exit check (in Room 1)
+    // 10. Overworld stairs exit check (in Room 1)
     if (m_dungeon.getCurrentRoomId() == 1 &&
         m_player.getFacing() == Core::Direction::Down &&
         m_dungeon.checkStairsExit(m_player.getWorldHitbox())) {
         m_wantsExitToOverworld = true;
     }
 
-    // 7. Snap camera to current room
+    // 11. Snap camera to current room
     Core::Vec2 cam = m_dungeon.getCameraOffset();
     m_camera.target = Vector2{cam.x, cam.y};
 }
@@ -111,6 +169,11 @@ void DungeonScene::renderRoom(const Core::DungeonRoom& room) {
     Texture2D plateUpTex = assets.getTexture("pressure_plate_up");
     Texture2D plateDownTex = assets.getTexture("pressure_plate_down");
     Texture2D stairsTex = assets.getTexture("dungeon_stairs");
+    Texture2D chasmTex = assets.getTexture("chasm");
+    Texture2D switchBlueTex = assets.getTexture("crystal_switch_blue");
+    Texture2D switchActiveTex = assets.getTexture("crystal_switch_active");
+    Texture2D chestClosedTex = assets.getTexture("chest_closed");
+    Texture2D chestOpenTex = assets.getTexture("chest_open");
 
     constexpr int tileSize = Core::DungeonRoom::TILE_SIZE;
     float ox = room.gridX * Core::DungeonRoom::ROOM_WIDTH;
@@ -123,7 +186,20 @@ void DungeonScene::renderRoom(const Core::DungeonRoom& room) {
         }
     }
 
-    // 2. Draw border walls and doors
+    // 2. Draw chasm pits (if room has any)
+    for (const auto& pit : room.chasmPits) {
+        int startC = static_cast<int>(pit.left() / tileSize);
+        int endC = static_cast<int>(pit.right() / tileSize);
+        int startR = static_cast<int>(pit.top() / tileSize);
+        int endR = static_cast<int>(pit.bottom() / tileSize);
+        for (int r = startR; r < endR; ++r) {
+            for (int c = startC; c < endC; ++c) {
+                DrawTexture(chasmTex, static_cast<int>(ox + c * tileSize), static_cast<int>(oy + r * tileSize), WHITE);
+            }
+        }
+    }
+
+    // 3. Draw border walls and doors
     for (int r = 0; r < Core::DungeonRoom::ROWS; ++r) {
         for (int c = 0; c < Core::DungeonRoom::COLS; ++c) {
             bool isTop = (r == 0);
@@ -195,7 +271,7 @@ void DungeonScene::renderRoom(const Core::DungeonRoom& room) {
         }
     }
 
-    // 3. Draw Pressure Plate if room has one
+    // 4. Draw Pressure Plate if room has one
     if (room.hasPlate) {
         Texture2D pTex = room.plate.pressed ? plateDownTex : plateUpTex;
         int ppx = static_cast<int>(ox + room.plate.position.x - 8.0f);
@@ -203,11 +279,35 @@ void DungeonScene::renderRoom(const Core::DungeonRoom& room) {
         DrawTexture(pTex, ppx, ppy, WHITE);
     }
 
-    // 4. Draw Stairs if room has stairs
+    // 5. Draw Stairs if room has stairs
     if (room.hasStairs) {
         int spx = static_cast<int>(ox + room.stairsPos.x - 8.0f);
         int spy = static_cast<int>(oy + room.stairsPos.y - 8.0f);
         DrawTexture(stairsTex, spx, spy, WHITE);
+    }
+
+    // 6. Draw Crystal Switch if room has one
+    if (room.hasCrystalSwitch) {
+        Texture2D swTex = room.crystalSwitch.active ? switchActiveTex : switchBlueTex;
+        int swx = static_cast<int>(ox + room.crystalSwitch.position.x - 8.0f);
+        int swy = static_cast<int>(oy + room.crystalSwitch.position.y - 8.0f);
+        DrawTexture(swTex, swx, swy, WHITE);
+    }
+
+    // 7. Draw Treasure Chest if room has one
+    if (room.hasChest) {
+        Texture2D cTex = room.chest.opened ? chestOpenTex : chestClosedTex;
+        int cx = static_cast<int>(ox + room.chest.position.x - 8.0f);
+        int cy = static_cast<int>(oy + room.chest.position.y - 8.0f);
+        DrawTexture(cTex, cx, cy, WHITE);
+
+        // Floating interaction hint if unopened and in range
+        if (!room.chest.opened && room.chest.canOpen(m_player.getPosition(), m_player.getFacing())) {
+            const char* prompt = "[E] OPEN";
+            int pw = MeasureText(prompt, 8);
+            DrawRectangle(cx + 8 - pw / 2 - 2, cy - 12, pw + 4, 10, Color{11, 12, 16, 200});
+            DrawText(prompt, cx + 8 - pw / 2, cy - 11, 8, Color{250, 204, 21, 255});
+        }
     }
 }
 
@@ -225,6 +325,19 @@ void DungeonScene::render() {
         if (rTo) renderRoom(*rTo);
     } else {
         renderRoom(m_dungeon.getCurrentRoom());
+    }
+
+    // Render active Arrows
+    const auto& curRoom = m_dungeon.getCurrentRoom();
+    float rx = curRoom.gridX * Core::DungeonRoom::ROOM_WIDTH;
+    float ry = curRoom.gridY * Core::DungeonRoom::ROOM_HEIGHT;
+    for (const auto& arrow : m_arrows) {
+        if (arrow.isActive()) {
+            Texture2D arrowTex = assets.getTexture(arrow.getTextureName());
+            int ax = static_cast<int>(rx + arrow.getPosition().x);
+            int ay = static_cast<int>(ry + arrow.getPosition().y);
+            DrawTexture(arrowTex, ax, ay, WHITE);
+        }
     }
 
     // Render Hero sprite
@@ -270,9 +383,15 @@ void DungeonScene::render() {
 
     // 2. Screen-space HUD & Overlays
     m_uiRenderer.renderHearts(m_player.getHealth());
+    m_uiRenderer.renderInventory(m_player.getInventory());
 
     if (health.isDead()) {
         m_uiRenderer.renderGameOver();
+    }
+
+    // Dialogue Box overlay (e.g. Bow obtained)
+    if (m_dialogueBox.isOpen()) {
+        m_dialogueBox.render();
     }
 
     // Location Banner: "THE SUNKEN CRYPT"

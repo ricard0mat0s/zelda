@@ -273,6 +273,239 @@ for dname, drows in dungeon_sprite_list:
             dpix.append(dungeon_pal.get(ch, (0, 0, 0, 0)))
     assets.append((dname, dpix))
 
+# Milestone 8 sprites: Chest, Bow, Arrows, Crystal Switch, Chasm
+m8_pal = {
+    '.': (0, 0, 0, 0),
+    'O': (11, 12, 16, 255),    # Black/dark outline
+    'w': (255, 255, 255, 255),# Pure white
+    's': (148, 163, 184, 255),# Steel/slate
+    'b': (120, 53, 15, 255),  # Brown wood
+    'B': (69, 26, 3, 255),    # Dark wood
+    'l': (180, 83, 9, 255),   # Light wood
+    'g': (234, 179, 8, 255),  # Gold
+    'Y': (250, 204, 21, 255), # Bright gold/yellow
+    'r': (153, 27, 27, 255),  # Red velvet
+    'R': (220, 38, 38, 255),  # Bright red
+    'c': (2, 132, 199, 255),  # Cyan/blue crystal
+    'C': (56, 189, 248, 255), # Bright blue
+    'd': (30, 58, 138, 255),  # Deep blue
+    'p': (30, 41, 59, 255),   # Stone pedestal
+    'P': (51, 65, 85, 255),   # Light pedestal
+    'V': (2, 6, 23, 255),     # Chasm void
+    'E': (15, 23, 42, 255),   # Chasm edge
+}
+
+chest_closed_rows = [
+    "................",
+    ".....OOOOOO.....",
+    "...OOggggggOO...",
+    "..OggllllllggO..",
+    ".OggllllllllggO.",
+    ".OgggOOOOOOgggO.",
+    ".OgBBBBBBBBBBgO.",
+    ".OgBggOOOOggBgO.",
+    ".OgBgOYYYYOgBgO.",
+    ".OgBgOYYYYOgBgO.",
+    ".OgBggOOOOggBgO.",
+    ".OgBBBBBBBBBBgO.",
+    ".OggggggggggggO.",
+    "..OssssssssssO..",
+    "...OOOOOOOOOO...",
+    "................",
+]
+
+chest_open_rows = [
+    "....OOOOOOOO....",
+    "...OggggggggO...",
+    "..OggllllllggO..",
+    ".OgggOOOOOOgggO.",
+    ".OgRRRRRRRRRRgO.",
+    ".OgRrRRRRRRrRgO.",
+    ".OgRrrrrrrrrRgO.",
+    ".OgBBBBBBBBBBgO.",
+    ".OgBggOOOOggBgO.",
+    ".OgBgOYYYYOgBgO.",
+    ".OgBggOOOOggBgO.",
+    ".OgBBBBBBBBBBgO.",
+    ".OggggggggggggO.",
+    "..OssssssssssO..",
+    "...OOOOOOOOOO...",
+    "................",
+]
+
+bow_icon_rows = [
+    ".........OO.....",
+    ".......OOllO....",
+    ".....OOll..Ow...",
+    "....Oll....Ow...",
+    "...Oll.....Ow...",
+    "..Oll......Ow...",
+    ".Oll.......Ow...",
+    ".OB..wwwwwwwwO..",
+    ".OB..s....sOw...",
+    ".Oll..ssss.Ow...",
+    "..Oll......Ow...",
+    "...Oll.....Ow...",
+    "....Oll....Ow...",
+    ".....OOll..Ow...",
+    ".......OOllO....",
+    ".........OO.....",
+]
+
+arrow_up_rows = [
+    ".......OO.......",
+    "......OssO......",
+    ".....OsswsO.....",
+    "....OsswwwsO....",
+    ".....OsswsO.....",
+    "......OllO......",
+    "......OllO......",
+    "......OllO......",
+    "......OllO......",
+    "......OllO......",
+    "......OllO......",
+    ".....OwllwO.....",
+    "....OwwllwwO....",
+    "....Oww..wwO....",
+    ".....OO..OO.....",
+    "................",
+]
+
+arrow_down_rows = [
+    "................",
+    ".....OO..OO.....",
+    "....Oww..wwO....",
+    "....OwwllwwO....",
+    ".....OwllwO.....",
+    "......OllO......",
+    "......OllO......",
+    "......OllO......",
+    "......OllO......",
+    "......OllO......",
+    "......OllO......",
+    ".....OsswsO.....",
+    "....OsswwwsO....",
+    ".....OsswsO.....",
+    "......OssO......",
+    ".......OO.......",
+]
+
+arrow_left_rows = [
+    "................",
+    "................",
+    ".....O..........",
+    "....OsO.........",
+    "...OssO.........",
+    "..OswsO.........",
+    ".OswwsOOOOOOOOO.",
+    "OswwwslllllllwwO",
+    "OswwwslllllllwwO",
+    ".OswwsOOOOOOOOO.",
+    "..OswsO.........",
+    "...OssO.........",
+    "....OsO.........",
+    ".....O..........",
+    "................",
+    "................",
+]
+
+arrow_right_rows = [
+    "................",
+    "................",
+    "..........O.....",
+    ".........OsO....",
+    ".........OssO...",
+    ".........OswsO..",
+    ".OOOOOOOOOswwsO.",
+    "OwwlllllllswwwsO",
+    "OwwlllllllswwwsO",
+    ".OOOOOOOOOswwsO.",
+    ".........OswsO..",
+    ".........OssO...",
+    ".........OsO....",
+    "..........O.....",
+    "................",
+    "................",
+]
+
+crystal_switch_blue_rows = [
+    ".......OO.......",
+    "......OwwO......",
+    ".....OCCwwO.....",
+    "....OCcccwwO....",
+    "...OCcccccwwO...",
+    "..OCcccccccwwO..",
+    "...OcccccccwO...",
+    "....OddddddO....",
+    ".....OddddO.....",
+    "......OwwO......",
+    ".....OPPPPO.....",
+    "....OPpppppO....",
+    "...OPpppppppO...",
+    "..OPPPPPPPPPPO..",
+    "..OOOOOOOOOOOO..",
+    "................",
+]
+
+crystal_switch_active_rows = [
+    ".......OO.......",
+    "......OwwO......",
+    ".....OYYwwO.....",
+    "....OYgggwwO....",
+    "...OYgggggwwO...",
+    "..OYgggggggwwO..",
+    "...OgggggggwO...",
+    "....OYYYYYYO....",
+    ".....OYYYYO.....",
+    "......OwwO......",
+    ".....OPPPPO.....",
+    "....OPpppppO....",
+    "...OPpppppppO...",
+    "..OPPPPPPPPPPO..",
+    "..OOOOOOOOOOOO..",
+    "................",
+]
+
+chasm_rows = [
+    "EEPEEPEEPEEPEEPE",
+    "EEEEEEEEEEEEEEEE",
+    "EVVVVVVVVVVVVVVE",
+    "EVVVVVVVVVVVVVVE",
+    "VVVVVVVVVVVVVVVV",
+    "VVVVVVVVVVVVVVVV",
+    "VVVVVVVVVVVVVVVV",
+    "VVVVVVVVVVVVVVVV",
+    "VVVVVVVVVVVVVVVV",
+    "VVVVVVVVVVVVVVVV",
+    "VVVVVVVVVVVVVVVV",
+    "VVVVVVVVVVVVVVVV",
+    "VVVVVVVVVVVVVVVV",
+    "VVVVVVVVVVVVVVVV",
+    "VVVVVVVVVVVVVVVV",
+    "VVVVVVVVVVVVVVVV",
+]
+
+m8_sprite_list = [
+    ('chest_closed', chest_closed_rows),
+    ('chest_open', chest_open_rows),
+    ('bow_icon', bow_icon_rows),
+    ('arrow_up', arrow_up_rows),
+    ('arrow_down', arrow_down_rows),
+    ('arrow_left', arrow_left_rows),
+    ('arrow_right', arrow_right_rows),
+    ('crystal_switch_blue', crystal_switch_blue_rows),
+    ('crystal_switch_active', crystal_switch_active_rows),
+    ('chasm', chasm_rows),
+]
+
+for mname, mrows in m8_sprite_list:
+    mpix = []
+    for r in mrows:
+        for ch in r:
+            mpix.append(m8_pal.get(ch, (0, 0, 0, 0)))
+    assets.append((mname, mpix))
+
+
 
 # Write GeneratedAssets.hpp
 with open('src/render/GeneratedAssets.hpp', 'w') as f:
@@ -339,3 +572,38 @@ const PixelAssetData* findGeneratedAsset(std::string_view name) {
 ''')
 
 print("GeneratedAssets.hpp and GeneratedAssets.cpp generated successfully!")
+
+# Export PNGs directly to assets/sprites
+import os
+import struct
+import zlib
+
+os.makedirs('assets/sprites', exist_ok=True)
+
+def write_png(filename, width, height, rgba_pixels):
+    raw_data = bytearray()
+    for y in range(height):
+        raw_data.append(0) # filter: None
+        for x in range(width):
+            r, g, b, a = rgba_pixels[y * width + x]
+            raw_data.extend([r, g, b, a])
+
+    compressed = zlib.compress(bytes(raw_data))
+
+    def make_chunk(chunk_type, data):
+        crc = zlib.crc32(chunk_type + data) & 0xffffffff
+        return struct.pack('>I', len(data)) + chunk_type + data + struct.pack('>I', crc)
+
+    png_bytes = b'\x89PNG\r\n\x1a\n'
+    ihdr_data = struct.pack('>IIBBBBB', width, height, 8, 6, 0, 0, 0)
+    png_bytes += make_chunk(b'IHDR', ihdr_data)
+    png_bytes += make_chunk(b'IDAT', compressed)
+    png_bytes += make_chunk(b'IEND', b'')
+
+    with open(filename, 'wb') as f:
+        f.write(png_bytes)
+
+for name, pixels in assets:
+    write_png(f'assets/sprites/{name}.png', 16, 16, pixels)
+
+print(f"Exported {len(assets)} PNG sprites to assets/sprites/ successfully!")

@@ -63,13 +63,23 @@ void Dungeon::buildRooms() {
         r2.setDoor(Direction::Left, DoorState::Open);
         r2.setConnectedRoom(Direction::Left, 3);
 
-        // North door leads to Room 4 (Monster Arena)
-        r2.setDoor(Direction::Up, DoorState::Open);
+        // North door leads to Room 4 (starts Closed - unlocked by crystal switch across pit!)
+        r2.setDoor(Direction::Up, DoorState::Closed);
         r2.setConnectedRoom(Direction::Up, 4);
 
         // East door leads to Room 5 (Pre-Boss)
         r2.setDoor(Direction::Right, DoorState::Open);
         r2.setConnectedRoom(Direction::Right, 5);
+
+        // Crystal switch on the north ledge
+        r2.hasCrystalSwitch = true;
+        r2.crystalSwitch.position = Vec2{160.0f, 48.0f};
+        r2.crystalSwitch.active = false;
+
+        // Chasm pits blocking direct path to the switch and northern exit
+        r2.chasmPits.push_back(Rect{32.0f, 64.0f, 96.0f, 48.0f});
+        r2.chasmPits.push_back(Rect{192.0f, 64.0f, 96.0f, 48.0f});
+        r2.chasmPits.push_back(Rect{128.0f, 80.0f, 64.0f, 32.0f});
 
         m_rooms.push_back(r2);
     }
@@ -85,6 +95,11 @@ void Dungeon::buildRooms() {
         // East door leads back to Room 2
         r3.setDoor(Direction::Right, DoorState::Open);
         r3.setConnectedRoom(Direction::Right, 2);
+
+        // Golden treasure chest containing Bow & Quiver
+        r3.hasChest = true;
+        r3.chest.position = Vec2{160.0f, 96.0f};
+        r3.chest.opened = false;
 
         m_rooms.push_back(r3);
     }
@@ -221,6 +236,102 @@ bool Dungeon::checkCollision(const Rect& box) const {
         }
     }
 
+    // Check chasm pits
+    for (const auto& pit : room.chasmPits) {
+        if (box.overlaps(pit)) {
+            return true;
+        }
+    }
+
+    // Check chest collision
+    if (room.hasChest && !room.chest.opened) {
+        if (box.overlaps(room.chest.getHitbox())) {
+            return true;
+        }
+    }
+
+    // Check crystal switch plinth collision
+    if (room.hasCrystalSwitch) {
+        if (box.overlaps(room.crystalSwitch.getHitbox())) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool Dungeon::checkProjectileCollision(const Rect& box) const {
+    const auto& room = getCurrentRoom();
+
+    constexpr float WALL_THICKNESS = 16.0f;
+    constexpr float DOOR_START_X = 136.0f;
+    constexpr float DOOR_END_X = 184.0f;
+    constexpr float DOOR_START_Y = 96.0f;
+    constexpr float DOOR_END_Y = 144.0f;
+
+    // Check North Wall
+    if (box.top() < WALL_THICKNESS) {
+        bool inDoorway = (box.left() >= DOOR_START_X && box.right() <= DOOR_END_X);
+        if (!inDoorway || room.getDoor(Direction::Up) != DoorState::Open) {
+            return true;
+        }
+    }
+
+    // Check South Wall
+    if (box.bottom() > DungeonRoom::ROOM_HEIGHT - WALL_THICKNESS) {
+        bool inDoorway = (box.left() >= DOOR_START_X && box.right() <= DOOR_END_X);
+        if (!inDoorway || room.getDoor(Direction::Down) != DoorState::Open) {
+            return true;
+        }
+    }
+
+    // Check West Wall
+    if (box.left() < WALL_THICKNESS) {
+        bool inDoorway = (box.top() >= DOOR_START_Y && box.bottom() <= DOOR_END_Y);
+        if (!inDoorway || room.getDoor(Direction::Left) != DoorState::Open) {
+            return true;
+        }
+    }
+
+    // Check East Wall
+    if (box.right() > DungeonRoom::ROOM_WIDTH - WALL_THICKNESS) {
+        bool inDoorway = (box.top() >= DOOR_START_Y && box.bottom() <= DOOR_END_Y);
+        if (!inDoorway || room.getDoor(Direction::Right) != DoorState::Open) {
+            return true;
+        }
+    }
+
+    // Projectiles collide with closed chests
+    if (room.hasChest && !room.chest.opened) {
+        if (box.overlaps(room.chest.getHitbox())) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool Dungeon::checkCrystalSwitchHit(const Rect& arrowHitbox) {
+    auto& room = getCurrentRoom();
+    if (!room.hasCrystalSwitch) return false;
+
+    if (room.crystalSwitch.checkHit(arrowHitbox)) {
+        // Unlock connected door (Room 2 unlocks North door to Room 4)
+        if (room.id == 2) {
+            room.setDoor(Direction::Up, DoorState::Open);
+        }
+        return true;
+    }
+    return false;
+}
+
+bool Dungeon::checkChestInteract(const Vec2& playerPos, Direction facing) {
+    auto& room = getCurrentRoom();
+    if (!room.hasChest) return false;
+
+    if (room.chest.canOpen(playerPos, facing)) {
+        return room.chest.open();
+    }
     return false;
 }
 

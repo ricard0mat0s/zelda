@@ -40,6 +40,55 @@ struct PressurePlate {
     }
 };
 
+struct CrystalSwitch {
+    Vec2 position{160.0f, 64.0f};
+    bool active = false;
+
+    Rect getHitbox() const {
+        return Rect{position.x - 7.0f, position.y - 7.0f, 14.0f, 14.0f};
+    }
+
+    bool checkHit(const Rect& arrowHitbox) {
+        if (!active && getHitbox().overlaps(arrowHitbox)) {
+            active = true;
+            return true;
+        }
+        return false;
+    }
+};
+
+struct TreasureChest {
+    Vec2 position{160.0f, 96.0f};
+    bool opened = false;
+
+    Rect getHitbox() const {
+        return Rect{position.x - 8.0f, position.y - 8.0f, 16.0f, 16.0f};
+    }
+
+    bool canOpen(const Vec2& playerPos, Direction facing) const {
+        if (opened) return false;
+        float dx = playerPos.x - position.x;
+        float dy = playerPos.y - position.y;
+        float distSq = dx * dx + dy * dy;
+        if (distSq > 32.0f * 32.0f) return false;
+
+        if (facing == Direction::Up && playerPos.y >= position.y) return true;
+        if (facing == Direction::Down && playerPos.y <= position.y) return true;
+        if (facing == Direction::Left && playerPos.x >= position.x) return true;
+        if (facing == Direction::Right && playerPos.x <= position.x) return true;
+
+        return distSq <= 20.0f * 20.0f;
+    }
+
+    bool open() {
+        if (!opened) {
+            opened = true;
+            return true;
+        }
+        return false;
+    }
+};
+
 struct DungeonRoom {
     int id = 1;
     int gridX = 0;
@@ -62,6 +111,14 @@ struct DungeonRoom {
     bool hasPlate = false;
     bool hasStairs = false;
     Vec2 stairsPos{160.0f, 208.0f};
+
+    CrystalSwitch crystalSwitch;
+    bool hasCrystalSwitch = false;
+
+    TreasureChest chest;
+    bool hasChest = false;
+
+    std::vector<Rect> chasmPits;
 
     DoorState getDoor(Direction dir) const {
         return doors[static_cast<size_t>(dir)];
@@ -133,6 +190,14 @@ public:
 
     // Checks stairs in Room 1 leading to overworld; returns true if stepped on
     bool checkStairsExit(const Rect& playerHitbox) const;
+
+    bool checkProjectileCollision(const Rect& arrowHitbox) const;
+
+    // Checks crystal switch hit by projectile; returns true if triggered for first time
+    bool checkCrystalSwitchHit(const Rect& arrowHitbox);
+
+    // Checks if player can open treasure chest in current room; returns true if opened
+    bool checkChestInteract(const Vec2& playerPos, Direction facing);
 
     const RoomTransition& getTransition() const { return m_transition; }
     bool isTransitioning() const { return m_transition.active; }

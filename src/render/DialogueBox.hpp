@@ -23,6 +23,7 @@ public:
     void render();
 
     bool isOpen() const { return m_visible; }
+    void close() { m_visible = false; }
 
 private:
     Core::Typewriter m_typewriter;

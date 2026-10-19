@@ -2,8 +2,11 @@
 
 #include "core/Dungeon.hpp"
 #include "core/Player.hpp"
+#include "core/Projectile.hpp"
 #include "render/UIRenderer.hpp"
+#include "render/DialogueBox.hpp"
 #include "raylib.h"
+#include <vector>
 
 namespace App {
 
@@ -34,6 +37,9 @@ private:
     Core::Dungeon m_dungeon;
     Core::Player m_player;
     Render::UIRenderer m_uiRenderer;
+    Render::DialogueBox m_dialogueBox;
+
+    std::vector<Core::Arrow> m_arrows;
 
     Camera2D m_camera{};
     float m_bannerTimer = 0.0f;

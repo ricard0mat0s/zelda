@@ -16,6 +16,7 @@
 #include "../src/core/Slime.hpp"
 #include "../src/core/ItemDrop.hpp"
 #include "../src/core/Dungeon.hpp"
+#include "../src/core/Projectile.hpp"
 #include "../src/render/GeneratedAssets.hpp"
 
 using namespace Core;
@@ -124,7 +125,7 @@ void test_sound_generator() {
 
 void test_generated_assets() {
     const auto& assets = Render::getAllGeneratedAssets();
-    TEST_ASSERT(assets.size() == 31, "Must contain exactly 31 procedural pixel art assets");
+    TEST_ASSERT(assets.size() == 41, "Must contain exactly 41 procedural pixel art assets");
 
     for (const auto& asset : assets) {
         TEST_ASSERT(asset.width == 16, "Asset width must be 16");
@@ -145,6 +146,16 @@ void test_generated_assets() {
     TEST_ASSERT(Render::findGeneratedAsset("pressure_plate_up") != nullptr, "pressure_plate_up must exist");
     TEST_ASSERT(Render::findGeneratedAsset("pressure_plate_down") != nullptr, "pressure_plate_down must exist");
     TEST_ASSERT(Render::findGeneratedAsset("dungeon_stairs") != nullptr, "dungeon_stairs must exist");
+    TEST_ASSERT(Render::findGeneratedAsset("chest_closed") != nullptr, "chest_closed must exist");
+    TEST_ASSERT(Render::findGeneratedAsset("chest_open") != nullptr, "chest_open must exist");
+    TEST_ASSERT(Render::findGeneratedAsset("bow_icon") != nullptr, "bow_icon must exist");
+    TEST_ASSERT(Render::findGeneratedAsset("arrow_up") != nullptr, "arrow_up must exist");
+    TEST_ASSERT(Render::findGeneratedAsset("arrow_down") != nullptr, "arrow_down must exist");
+    TEST_ASSERT(Render::findGeneratedAsset("arrow_left") != nullptr, "arrow_left must exist");
+    TEST_ASSERT(Render::findGeneratedAsset("arrow_right") != nullptr, "arrow_right must exist");
+    TEST_ASSERT(Render::findGeneratedAsset("crystal_switch_blue") != nullptr, "crystal_switch_blue must exist");
+    TEST_ASSERT(Render::findGeneratedAsset("crystal_switch_active") != nullptr, "crystal_switch_active must exist");
+    TEST_ASSERT(Render::findGeneratedAsset("chasm") != nullptr, "chasm must exist");
     TEST_ASSERT(Render::findGeneratedAsset("non_existent_sprite") == nullptr, "non_existent_sprite must return nullptr");
 
     testsPassed++;
@@ -596,6 +607,92 @@ void test_dungeon_room_transitions() {
     testsPassed++;
 }
 
+void test_arrow_projectile() {
+    // 1. Arrow firing in 4 directions
+    Arrow arrowUp(Vec2(100.0f, 100.0f), Direction::Up, 200.0f);
+    TEST_ASSERT(arrowUp.isActive(), "Arrow starts active");
+    TEST_ASSERT(arrowUp.getTextureName() == "arrow_up", "Up arrow texture name");
+
+    arrowUp.update(0.1f);
+    TEST_ASSERT(arrowUp.getPosition().y == 80.0f, "Arrow moved up by 20px in 0.1s");
+
+    Arrow arrowRight(Vec2(50.0f, 50.0f), Direction::Right, 100.0f);
+    TEST_ASSERT(arrowRight.getTextureName() == "arrow_right", "Right arrow texture name");
+    arrowRight.update(0.5f);
+    TEST_ASSERT(arrowRight.getPosition().x == 100.0f, "Arrow moved right by 50px");
+
+    // 2. Lifetime expiration
+    arrowRight.update(2.0f);
+    TEST_ASSERT(!arrowRight.isActive(), "Arrow deactivates after lifetime expires");
+
+    // 3. Deactivate manually on hit
+    arrowUp.deactivate();
+    TEST_ASSERT(!arrowUp.isActive(), "Arrow deactivates manually");
+
+    testsPassed++;
+}
+
+void test_treasure_chest_in_room_3() {
+    Dungeon dungeon;
+    dungeon.init();
+    dungeon.setCurrentRoomId(3); // Treasure Chamber
+
+    const auto& room3 = dungeon.getCurrentRoom();
+    TEST_ASSERT(room3.hasChest, "Room 3 must contain a treasure chest");
+    TEST_ASSERT(!room3.chest.opened, "Chest starts closed");
+
+    // Check chest blocks player movement when closed
+    Rect chestBox = room3.chest.getHitbox();
+    TEST_ASSERT(dungeon.checkCollision(chestBox), "Chest collision must block player");
+
+    // Player far away cannot open chest
+    Vec2 farPlayerPos(50.0f, 50.0f);
+    TEST_ASSERT(!dungeon.checkChestInteract(farPlayerPos, Direction::Up), "Cannot open chest from afar");
+
+    // Player standing directly below chest facing Up opens chest
+    Vec2 nearPlayerPos(160.0f, 114.0f);
+    bool opened = dungeon.checkChestInteract(nearPlayerPos, Direction::Up);
+    TEST_ASSERT(opened, "Interacting with chest opens it");
+    TEST_ASSERT(room3.chest.opened, "Chest is now marked opened");
+
+    // Re-interacting cannot open again
+    TEST_ASSERT(!dungeon.checkChestInteract(nearPlayerPos, Direction::Up), "Cannot open already opened chest");
+
+    testsPassed++;
+}
+
+void test_crystal_switch_arrow_trigger() {
+    Dungeon dungeon;
+    dungeon.init();
+    dungeon.setCurrentRoomId(2); // Crystal Chasm
+
+    const auto& room2 = dungeon.getCurrentRoom();
+    TEST_ASSERT(room2.hasCrystalSwitch, "Room 2 must contain a crystal switch");
+    TEST_ASSERT(!room2.crystalSwitch.active, "Crystal switch starts inactive");
+    TEST_ASSERT(room2.getDoor(Direction::Up) == DoorState::Closed, "North door starts closed");
+
+    // Verify chasm pit blocks walking
+    Rect pitBox{50.0f, 70.0f, 12.0f, 12.0f};
+    TEST_ASSERT(dungeon.checkCollision(pitBox), "Chasm pit must block player walking");
+
+    // But projectiles can fly over chasm pits!
+    TEST_ASSERT(!dungeon.checkProjectileCollision(pitBox), "Arrows can fly over chasm pits");
+
+    // Fire arrow into crystal switch
+    Arrow arrow(Vec2(160.0f, 120.0f), Direction::Up, 240.0f);
+    // Switch is at (160, 48). When arrow reaches (160, 48):
+    Arrow hittingArrow(Vec2(156.0f, 46.0f), Direction::Up);
+    bool hit = dungeon.checkCrystalSwitchHit(hittingArrow.getHitbox());
+    TEST_ASSERT(hit, "Arrow striking crystal switch triggers activation");
+    TEST_ASSERT(room2.crystalSwitch.active, "Crystal switch is now active");
+    TEST_ASSERT(room2.getDoor(Direction::Up) == DoorState::Open, "North door unlocks to Open when switch is struck");
+
+    // Second hit does not re-trigger
+    TEST_ASSERT(!dungeon.checkCrystalSwitchHit(hittingArrow.getHitbox()), "Second hit does not re-trigger");
+
+    testsPassed++;
+}
+
 int main() {
     std::cout << "=== Running Headless Core Tests ===" << std::endl;
     test_vector_math();
@@ -618,6 +715,9 @@ int main() {
     test_item_drops();
     test_dungeon_room_layout_and_plate();
     test_dungeon_room_transitions();
+    test_arrow_projectile();
+    test_treasure_chest_in_room_3();
+    test_crystal_switch_arrow_trigger();
 
     std::cout << "Tests Passed: " << testsPassed << " | Tests Failed: " << testsFailed << std::endl;
     return testsFailed == 0 ? 0 : 1;
