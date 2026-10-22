@@ -1,5 +1,6 @@
 CXX ?= g++
 CXXFLAGS = -std=c++20 -Wall -Wextra -O2
+DEPFLAGS = -MMD -MP
 INCLUDES = -Isrc -Ivendor/raylib/include -Ivendor
 
 # Static Raylib linkage for hermetic execution on Linux
@@ -17,6 +18,7 @@ TEST_TARGET = $(BIN_DIR)/test_runner
 # All cpp files in src
 APP_SRCS = $(shell find $(SRC_DIR) -name "*.cpp")
 APP_OBJS = $(patsubst $(SRC_DIR)/%.cpp, $(BUILD_DIR)/%.o, $(APP_SRCS))
+APP_DEPS = $(APP_OBJS:.o=.d)
 
 # Test sources
 TEST_SRCS = $(shell find $(TEST_DIR) -name "*.cpp")
@@ -32,7 +34,7 @@ $(TARGET): $(APP_OBJS)
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp
 	@mkdir -p $(dir $@)
-	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(DEPFLAGS) $(INCLUDES) -c $< -o $@
 
 test: $(TEST_TARGET)
 	@echo "Executing tests..."
@@ -49,3 +51,5 @@ run: $(TARGET)
 
 clean:
 	rm -rf $(BUILD_DIR) $(BIN_DIR)
+
+-include $(APP_DEPS)
