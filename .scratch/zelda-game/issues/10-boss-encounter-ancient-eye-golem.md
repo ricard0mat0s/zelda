@@ -4,10 +4,10 @@
 
 **Blocked by:** 09 (Monster Arena & Small Key Progression)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Unit tests verify `BossGolemStateMachine` phase logic and stun timers.
-- [ ] Phase 1: Golem stomps toward player and hurls rocks; body is armored and sword strikes bounce off.
-- [ ] Phase 2: Golem pauses and eye turns glowing red to charge laser; hitting eye with an arrow stuns it for 3.5 seconds.
-- [ ] Phase 3: Stunned golem takes full sword combo damage; after stun or damage cap, roars and speeds up.
-- [ ] Defeat triggers screen shake, explosion particles, drops a Heart Container (+1 max heart), and opens the Victory screen.
+- [x] Unit tests verify `BossGolemStateMachine` phase logic and stun timers.
+- [x] Phase 1: Golem stomps toward player and hurls rocks; body is armored and sword strikes bounce off.
+- [x] Phase 2: Golem pauses and eye turns glowing red to charge laser; hitting eye with an arrow stuns it for 3.5 seconds.
+- [x] Phase 3: Stunned golem takes full sword combo damage; after stun or damage cap, roars and speeds up.
+- [x] Defeat triggers screen shake, explosion particles, drops a Heart Container (+1 max heart), and opens the Victory screen.

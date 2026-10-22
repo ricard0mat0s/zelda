@@ -84,4 +84,65 @@ void UIRenderer::renderGameOver() {
     DrawText(retryText, rx, cy + 28, 8, WHITE);
 }
 
+void UIRenderer::renderBossHealthBar(const char* name, int currentHP, int maxHP) {
+    if (maxHP <= 0 || currentHP <= 0) return;
+
+    constexpr int barWidth = 104;
+    constexpr int barHeight = 6;
+    int barX = (Core::GameConfig::VIRTUAL_WIDTH - barWidth) / 2;
+    int barY = 18;
+
+    int nameW = MeasureText(name, 8);
+    int nameX = (Core::GameConfig::VIRTUAL_WIDTH - nameW) / 2;
+    DrawText(name, nameX + 1, 8 + 1, 8, Color{11, 12, 16, 255});
+    DrawText(name, nameX, 8, 8, Color{250, 204, 21, 255});
+
+    // Bar frame & background
+    DrawRectangle(barX - 2, barY - 2, barWidth + 4, barHeight + 4, Color{11, 12, 16, 230});
+    DrawRectangleLines(barX - 1, barY - 1, barWidth + 2, barHeight + 2, Color{148, 163, 184, 255});
+
+    float ratio = static_cast<float>(currentHP) / static_cast<float>(maxHP);
+    int fillW = static_cast<int>(barWidth * std::clamp(ratio, 0.0f, 1.0f));
+    if (fillW > 0) {
+        DrawRectangle(barX, barY, fillW, barHeight, Color{220, 38, 38, 255});
+        DrawRectangle(barX, barY, fillW, 2, Color{248, 113, 113, 255});
+    }
+}
+
+void UIRenderer::renderVictoryScreen(int maxHearts) {
+    DrawRectangle(0, 0, Core::GameConfig::VIRTUAL_WIDTH, Core::GameConfig::VIRTUAL_HEIGHT, Color{11, 12, 16, 215});
+
+    // Decorative gold border
+    DrawRectangleLines(16, 16, Core::GameConfig::VIRTUAL_WIDTH - 32, Core::GameConfig::VIRTUAL_HEIGHT - 32, Color{250, 204, 21, 255});
+    DrawRectangleLines(18, 18, Core::GameConfig::VIRTUAL_WIDTH - 36, Core::GameConfig::VIRTUAL_HEIGHT - 36, Color{202, 138, 4, 255});
+
+    const char* title = "VICTORY!";
+    int titleW = MeasureText(title, 20);
+    int tx = (Core::GameConfig::VIRTUAL_WIDTH - titleW) / 2;
+    DrawText(title, tx + 1, 43, 20, BLACK);
+    DrawText(title, tx, 42, 20, Color{250, 204, 21, 255});
+
+    const char* sub1 = "ANCIENT EYE GOLEM DEFEATED";
+    int s1W = MeasureText(sub1, 8);
+    DrawText(sub1, (Core::GameConfig::VIRTUAL_WIDTH - s1W) / 2, 74, 8, Color{103, 232, 249, 255});
+
+    const char* sub2 = "PEACE RETURNS TO HYRULE";
+    int s2W = MeasureText(sub2, 8);
+    DrawText(sub2, (Core::GameConfig::VIRTUAL_WIDTH - s2W) / 2, 90, 8, Color{226, 232, 240, 255});
+
+    // Render Heart Container icon + stat
+    auto& assets = AssetManager::instance();
+    Texture2D hcTex = assets.getTexture("heart_container");
+    int iconX = Core::GameConfig::VIRTUAL_WIDTH / 2 - 8;
+    DrawTexture(hcTex, iconX, 112, WHITE);
+
+    std::string statStr = "MAX LIFE INCREASED TO " + std::to_string(maxHearts) + " HEARTS!";
+    int stW = MeasureText(statStr.c_str(), 8);
+    DrawText(statStr.c_str(), (Core::GameConfig::VIRTUAL_WIDTH - stW) / 2, 136, 8, Color{248, 113, 113, 255});
+
+    const char* prompt = "PRESS [ENTER] TO CONTINUE ADVENTURE";
+    int pW = MeasureText(prompt, 8);
+    DrawText(prompt, (Core::GameConfig::VIRTUAL_WIDTH - pW) / 2, 184, 8, WHITE);
+}
+
 } // namespace Render

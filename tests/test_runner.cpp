@@ -18,6 +18,7 @@
 #include "../src/core/Dungeon.hpp"
 #include "../src/core/Projectile.hpp"
 #include "../src/core/DungeonEnemies.hpp"
+#include "../src/core/BossGolem.hpp"
 #include "../src/render/GeneratedAssets.hpp"
 
 using namespace Core;
@@ -126,7 +127,7 @@ void test_sound_generator() {
 
 void test_generated_assets() {
     const auto& assets = Render::getAllGeneratedAssets();
-    TEST_ASSERT(assets.size() == 47, "Must contain exactly 47 procedural pixel art assets");
+    TEST_ASSERT(assets.size() == 52, "Must contain exactly 52 procedural pixel art assets");
 
     for (const auto& asset : assets) {
         TEST_ASSERT(asset.width == 16, "Asset width must be 16");
@@ -163,6 +164,11 @@ void test_generated_assets() {
     TEST_ASSERT(Render::findGeneratedAsset("skeleton_1") != nullptr, "skeleton_1 must exist");
     TEST_ASSERT(Render::findGeneratedAsset("small_key") != nullptr, "small_key must exist");
     TEST_ASSERT(Render::findGeneratedAsset("dungeon_door_locked") != nullptr, "dungeon_door_locked must exist");
+    TEST_ASSERT(Render::findGeneratedAsset("boss_golem_armored") != nullptr, "boss_golem_armored must exist");
+    TEST_ASSERT(Render::findGeneratedAsset("boss_golem_charging") != nullptr, "boss_golem_charging must exist");
+    TEST_ASSERT(Render::findGeneratedAsset("boss_golem_stunned") != nullptr, "boss_golem_stunned must exist");
+    TEST_ASSERT(Render::findGeneratedAsset("rock_projectile") != nullptr, "rock_projectile must exist");
+    TEST_ASSERT(Render::findGeneratedAsset("heart_container") != nullptr, "heart_container must exist");
     TEST_ASSERT(Render::findGeneratedAsset("non_existent_sprite") == nullptr, "non_existent_sprite must return nullptr");
 
     testsPassed++;
@@ -840,6 +846,100 @@ void test_monster_arena_lock_and_key_unlock() {
     testsPassed++;
 }
 
+void test_boss_golem_phases_and_combat() {
+    Dungeon dungeon;
+    dungeon.init();
+    dungeon.setCurrentRoomId(6);
+
+    BossGolemStateMachine golem(144.0f, 56.0f);
+    TEST_ASSERT(golem.getPhase() == BossPhase::ArmoredStomp, "Golem starts in Phase 1: ArmoredStomp");
+    TEST_ASSERT(golem.getHP() == 12 && golem.getMaxHP() == 12, "Golem starts with 12 HP");
+    TEST_ASSERT(golem.isArmored(), "Golem is armored in Phase 1");
+    TEST_ASSERT(golem.getTextureName() == "boss_golem_armored", "Armored texture in Phase 1");
+
+    Vec2 playerPos(144.0f, 180.0f);
+
+    // Phase 1: Sword and arrows bounce off armor
+    Rect swordBox = golem.getBodyHitbox();
+    Rect arrowBox = golem.getEyeHitbox();
+    TEST_ASSERT(!golem.trySwordHit(swordBox, 1), "Sword bounces off armored golem in Phase 1");
+    TEST_ASSERT(!golem.tryArrowHit(arrowBox, 1), "Arrow bounces off armored eye in Phase 1");
+    TEST_ASSERT(golem.getHP() == 12, "HP unchanged after deflected hits");
+
+    // Golem stomps toward player and hurls a rock after 1.4s
+    float startY = golem.getPosition().y;
+    golem.update(1.5f, playerPos, dungeon);
+    TEST_ASSERT(golem.getPosition().y > startY, "Golem stomps downward toward player");
+    TEST_ASSERT(golem.consumeRockFiredEvent(), "Golem hurls rock projectile");
+    TEST_ASSERT(!golem.getRocks().empty(), "Active rock projectile spawned");
+
+    // Advance remaining 2.6s (total 4.1s >= 4.0s) to enter Phase 2: EyeCharging
+    golem.update(2.6f, playerPos, dungeon);
+    TEST_ASSERT(golem.getPhase() == BossPhase::EyeCharging, "Golem enters Phase 2: EyeCharging");
+    TEST_ASSERT(golem.getTextureName() == "boss_golem_charging", "Charging texture in Phase 2");
+    TEST_ASSERT(!golem.trySwordHit(golem.getBodyHitbox(), 1), "Sword still bounces off in Phase 2");
+
+    // Hitting the charging eye with an arrow stuns the golem for 3.5 seconds!
+    bool stunned = golem.tryArrowHit(golem.getEyeHitbox(), 1);
+    TEST_ASSERT(stunned, "Arrow hitting charging eye stuns the golem");
+    TEST_ASSERT(golem.getPhase() == BossPhase::Stunned, "Golem enters Phase 3: Stunned");
+    TEST_ASSERT(golem.getHP() == 11, "Arrow stun deals 1 damage");
+    TEST_ASSERT(std::abs(golem.getStunTimeRemaining() - 3.5f) < 0.001f, "Stun duration is 3.5 seconds");
+    TEST_ASSERT(golem.getTextureName() == "boss_golem_stunned", "Stunned texture in Phase 3");
+
+    // Phase 3: Stunned golem takes full sword combo damage
+    golem.update(0.3f, playerPos, dungeon); // Clear hurt timer from arrow hit
+    float initialSpeed = golem.getSpeed();
+
+    for (int i = 0; i < 4; ++i) {
+        bool swordHit = golem.trySwordHit(golem.getBodyHitbox(), 1);
+        TEST_ASSERT(swordHit, "Stunned golem takes sword damage");
+        golem.update(0.25f, playerPos, dungeon);
+    }
+
+    // After 4 hits (damage cap), golem roars, speeds up, and returns to ArmoredStomp
+    TEST_ASSERT(golem.getHP() == 7, "Golem HP is 7 after 4 sword combo hits");
+    TEST_ASSERT(golem.getPhase() == BossPhase::ArmoredStomp, "Golem recovers after max stun hits");
+    TEST_ASSERT(golem.consumeRoarEvent(), "Golem roars upon recovering from stun");
+    TEST_ASSERT(golem.getSpeed() > initialSpeed, "Golem speeds up after stun cycle");
+
+    // Also test stun timer expiration (3.5s without hitting damage cap)
+    golem.setPhase(BossPhase::EyeCharging);
+    TEST_ASSERT(golem.tryArrowHit(golem.getEyeHitbox(), 1), "Arrow stuns again (HP -> 6)");
+    TEST_ASSERT(golem.getPhase() == BossPhase::Stunned, "Stunned again");
+    golem.update(3.55f, playerPos, dungeon);
+    TEST_ASSERT(golem.getPhase() == BossPhase::ArmoredStomp, "Stun expires after 3.5 seconds");
+
+    // Deal lethal damage to trigger Dying -> Defeated sequence
+    golem.setPhase(BossPhase::Stunned);
+    bool killed = golem.trySwordHit(golem.getBodyHitbox(), 6);
+    TEST_ASSERT(killed, "Lethal sword strike lands");
+    TEST_ASSERT(golem.getHP() == 0 && golem.isDead(), "Golem HP is 0 and dead");
+    TEST_ASSERT(golem.isDying(), "Golem enters Dying phase for explosion sequence");
+    TEST_ASSERT(!golem.getExplosions().empty(), "Explosion particles spawned on death");
+
+    // Advance past 2.0s dying sequence
+    golem.update(2.1f, playerPos, dungeon);
+    TEST_ASSERT(golem.isDefeated(), "Golem transitions to Defeated after death sequence");
+
+    // Heart Container drop and +1 Max Heart reward
+    ItemDrop hcDrop;
+    hcDrop.pos = Vec2(152.0f, 104.0f);
+    hcDrop.type = ItemType::HeartContainer;
+    hcDrop.active = true;
+    hcDrop.update(30.0f);
+    TEST_ASSERT(hcDrop.active, "HeartContainer drop never despawns");
+    TEST_ASSERT(hcDrop.getTextureName() == "heart_container", "HeartContainer texture name");
+
+    Player hero;
+    hero.takeDamage(2);
+    TEST_ASSERT(hero.getHealth().getMaxHearts() == 3 && hero.getHealth().getCurrentHP() == 4, "Hero at 2/3 hearts");
+    hero.getHealth().addHeartContainer();
+    TEST_ASSERT(hero.getHealth().getMaxHearts() == 4 && hero.getHealth().getCurrentHP() == 8, "HeartContainer grants +1 max heart and full heal");
+
+    testsPassed++;
+}
+
 int main() {
     std::cout << "=== Running Headless Core Tests ===" << std::endl;
     test_vector_math();
@@ -868,6 +968,7 @@ int main() {
     test_bat_movement_and_damage();
     test_skeleton_patrol_chase_and_knockback();
     test_monster_arena_lock_and_key_unlock();
+    test_boss_golem_phases_and_combat();
 
     std::cout << "Tests Passed: " << testsPassed << " | Tests Failed: " << testsFailed << std::endl;
     return testsFailed == 0 ? 0 : 1;

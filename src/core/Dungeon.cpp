@@ -156,6 +156,9 @@ void Dungeon::buildRooms() {
         r6.gridX = 2;
         r6.gridY = -1;
         r6.name = "Boss Sanctum";
+        r6.isArena = true;
+        r6.arenaCleared = false;
+        r6.arenaLocked = false;
 
         // South door leads back to Room 5
         r6.setDoor(Direction::Down, DoorState::Open);

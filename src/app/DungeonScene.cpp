@@ -33,6 +33,12 @@ void DungeonScene::reset() {
     m_wantsExitToOverworld = false;
     m_arrows.clear();
     m_itemDrops.clear();
+    m_bossDrops.clear();
+    m_boss.reset(144.0f, 56.0f);
+    m_screenShakeTimer = 0.0f;
+    m_swordBounceSoundCooldown = 0.0f;
+    m_victory = false;
+    m_victoryOverlayOpen = false;
     spawnArenaEnemies();
     m_dialogueBox.close();
 
@@ -59,10 +65,25 @@ void DungeonScene::enterDungeon(const Core::Player& overworldPlayer) {
 }
 
 void DungeonScene::update(float dt) {
-    // 0. If dead, allow retry
+    if (m_screenShakeTimer > 0.0f) {
+        m_screenShakeTimer = std::max(0.0f, m_screenShakeTimer - dt);
+    }
+    if (m_swordBounceSoundCooldown > 0.0f) {
+        m_swordBounceSoundCooldown = std::max(0.0f, m_swordBounceSoundCooldown - dt);
+    }
+
+    // 0. If Victory overlay is open, allow dismissal to continue exploring
+    if (m_victoryOverlayOpen) {
+        if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_E)) {
+            m_victoryOverlayOpen = false;
+        }
+        return;
+    }
+
+    // 0b. If dead, allow retry
     if (m_player.getHealth().isDead()) {
         if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) {
-            m_player.heal(6);
+            m_player.heal(m_player.getHealth().getMaxHP());
             m_player.setPosition(Core::Vec2{152.0f, 180.0f});
             m_player.setFacing(Core::Direction::Up);
             m_dungeon.setCurrentRoomId(1);
@@ -73,6 +94,13 @@ void DungeonScene::update(float dt) {
                 r4->setDoor(Core::Direction::Down, Core::DoorState::Open);
                 r4->setDoor(Core::Direction::Right, Core::DoorState::Open);
                 spawnArenaEnemies();
+            }
+
+            auto* r6 = m_dungeon.getRoom(6);
+            if (r6 && !r6->arenaCleared) {
+                r6->arenaLocked = false;
+                r6->setDoor(Core::Direction::Down, Core::DoorState::Open);
+                m_boss.reset(144.0f, 56.0f);
             }
         }
         return;
@@ -195,6 +223,20 @@ void DungeonScene::update(float dt) {
                 }
             }
         }
+
+        // Check collision with Boss Golem in Room 6
+        if (m_dungeon.getCurrentRoomId() == 6 && !m_boss.isDead()) {
+            if (arrow.getHitbox().overlaps(m_boss.getBodyHitbox()) || arrow.getHitbox().overlaps(m_boss.getEyeHitbox())) {
+                if (m_boss.tryArrowHit(arrow.getHitbox(), arrow.getDamage())) {
+                    Render::AudioPlayer::instance().playBossRoar();
+                    m_screenShakeTimer = std::max(m_screenShakeTimer, 0.35f);
+                } else {
+                    Render::AudioPlayer::instance().playHit();
+                }
+                arrow.deactivate();
+                continue;
+            }
+        }
     }
     std::erase_if(m_arrows, [](const Core::Arrow& a) { return !a.isActive(); });
 
@@ -209,7 +251,12 @@ void DungeonScene::update(float dt) {
 
     // 8. Arena entry lock and key door unlocking
     if (m_dungeon.checkArenaEntryLock()) {
-        Render::AudioPlayer::instance().playEnemyDefeat();
+        if (m_dungeon.getCurrentRoomId() == 6) {
+            Render::AudioPlayer::instance().playBossRoar();
+            m_screenShakeTimer = 0.4f;
+        } else {
+            Render::AudioPlayer::instance().playEnemyDefeat();
+        }
     }
 
     if (m_dungeon.tryUnlockDoor(m_player.getPosition(), m_player.getFacing(), m_player.getInventory())) {
@@ -330,6 +377,103 @@ void DungeonScene::update(float dt) {
         std::erase_if(m_itemDrops, [](const Core::ItemDrop& d) { return !d.active; });
     }
 
+    // 9b. Room 6 Boss Sanctum: Ancient Eye Golem encounter
+    if (m_dungeon.getCurrentRoomId() == 6) {
+        if (!m_boss.isDefeated()) {
+            // Sword strikes against the Golem
+            if (m_player.isAttacking() && !m_boss.isDead()) {
+                Core::Rect swordBox = m_player.getCurrentSwordHitbox();
+                if (swordBox.overlaps(m_boss.getBodyHitbox())) {
+                    if (m_boss.trySwordHit(swordBox, 1)) {
+                        if (m_boss.isDead()) {
+                            Render::AudioPlayer::instance().playBossRoar();
+                            m_screenShakeTimer = 2.0f;
+                        } else {
+                            Render::AudioPlayer::instance().playHit();
+                            m_screenShakeTimer = std::max(m_screenShakeTimer, 0.12f);
+                        }
+                    } else if (m_swordBounceSoundCooldown <= 0.0f) {
+                        // Armored body deflects sword strike!
+                        Render::AudioPlayer::instance().playHit();
+                        m_swordBounceSoundCooldown = 0.25f;
+                        Core::Vec2 bounce = Core::calculateKnockback(m_boss.getPosition(), m_player.getPosition(), 8.0f);
+                        m_player.setPosition(m_dungeon.resolveMovement(m_player.getPosition(), bounce, m_player.getLocalHitbox()));
+                    }
+                }
+            }
+
+            m_boss.update(dt, m_player.getPosition(), m_dungeon);
+
+            if (m_boss.consumeRoarEvent()) {
+                Render::AudioPlayer::instance().playBossRoar();
+                m_screenShakeTimer = std::max(m_screenShakeTimer, 0.4f);
+            }
+            if (m_boss.consumeRockFiredEvent()) {
+                Render::AudioPlayer::instance().playArrowShoot();
+            }
+            if (m_boss.consumeExplosionEvent()) {
+                Render::AudioPlayer::instance().playEnemyDefeat();
+                m_screenShakeTimer = std::max(m_screenShakeTimer, 0.35f);
+            }
+
+            // Rock projectiles vs Player / Frontal Shield
+            for (auto& rock : m_boss.getRocks()) {
+                if (!rock.active) continue;
+                if (rock.getHitbox().overlaps(m_player.getWorldHitbox())) {
+                    if (Core::isAttackBlockedByShield(m_player.getPosition(), m_player.getFacing(), rock.pos)) {
+                        Render::AudioPlayer::instance().playHit();
+                    } else {
+                        auto res = m_player.takeDamage(rock.damage);
+                        if (res.damaged) {
+                            Render::AudioPlayer::instance().playPlayerHurt();
+                            m_screenShakeTimer = std::max(m_screenShakeTimer, 0.2f);
+                        }
+                    }
+                    rock.active = false;
+                }
+            }
+
+            // Golem body contact vs Player (only damages when not stunned/dying)
+            if (!m_boss.isDead() && m_boss.getPhase() != Core::BossPhase::Stunned) {
+                if (m_boss.getBodyHitbox().overlaps(m_player.getWorldHitbox())) {
+                    auto res = m_player.takeDamage(1);
+                    if (res.damaged) {
+                        Render::AudioPlayer::instance().playPlayerHurt();
+                        m_screenShakeTimer = std::max(m_screenShakeTimer, 0.2f);
+                    }
+                }
+            }
+
+            // Check if Boss just finished its death sequence
+            if (m_boss.isDefeated()) {
+                if (m_dungeon.clearArena()) {
+                    Render::AudioPlayer::instance().playSecretChime();
+                    Core::ItemDrop hcDrop;
+                    hcDrop.pos = Core::Vec2(152.0f, 104.0f);
+                    hcDrop.type = Core::ItemType::HeartContainer;
+                    hcDrop.active = true;
+                    m_bossDrops.push_back(hcDrop);
+                }
+            }
+        }
+
+        // Update and collect Boss Drops (Heart Container) in Room 6
+        for (auto& drop : m_bossDrops) {
+            if (!drop.active) continue;
+            drop.update(dt);
+            if (drop.getHitbox().overlaps(m_player.getWorldHitbox())) {
+                if (drop.type == Core::ItemType::HeartContainer) {
+                    m_player.getHealth().addHeartContainer();
+                    Render::AudioPlayer::instance().playChestFanfare();
+                    m_victory = true;
+                    m_victoryOverlayOpen = true;
+                    drop.active = false;
+                }
+            }
+        }
+        std::erase_if(m_bossDrops, [](const Core::ItemDrop& d) { return !d.active; });
+    }
+
     // 10. Pressure plate trigger
     if (m_dungeon.checkPlateTrigger(m_player.getWorldHitbox())) {
         Render::AudioPlayer::instance().playSecretChime();
@@ -345,9 +489,16 @@ void DungeonScene::update(float dt) {
         m_wantsExitToOverworld = true;
     }
 
-    // 13. Snap camera to current room
+    // 13. Snap camera to current room (with screen shake if active)
     Core::Vec2 cam = m_dungeon.getCameraOffset();
     m_camera.target = Vector2{cam.x, cam.y};
+    if (m_screenShakeTimer > 0.0f) {
+        float sx = std::sin(m_screenShakeTimer * 95.0f) * 3.0f;
+        float sy = std::cos(m_screenShakeTimer * 120.0f) * 3.0f;
+        m_camera.offset = Vector2{sx, sy};
+    } else {
+        m_camera.offset = Vector2{0.0f, 0.0f};
+    }
 }
 
 void DungeonScene::renderRoom(const Core::DungeonRoom& room) {
@@ -582,6 +733,52 @@ void DungeonScene::render() {
         }
     }
 
+    // Render Room 6 entities (Boss Golem, Rocks, Explosions, Heart Container)
+    const auto* r6 = m_dungeon.getRoom(6);
+    if (r6) {
+        float ox = r6->gridX * Core::DungeonRoom::ROOM_WIDTH;
+        float oy = r6->gridY * Core::DungeonRoom::ROOM_HEIGHT;
+
+        if (!m_boss.isDefeated()) {
+            Texture2D bossTex = assets.getTexture(m_boss.getTextureName());
+            Vector2 bossPos{ox + m_boss.getPosition().x, oy + m_boss.getPosition().y};
+            Color tint = WHITE;
+            if (m_boss.isHurt() || m_boss.isDying()) {
+                tint = Color{255, 110, 110, 235};
+            } else if (m_boss.getPhase() == Core::BossPhase::EyeCharging) {
+                int pulse = static_cast<int>(std::sin(m_boss.getPhaseTimer() * 16.0f) * 35.0f);
+                tint = Color{255, static_cast<unsigned char>(std::clamp(215 + pulse, 160, 255)),
+                             static_cast<unsigned char>(std::clamp(215 + pulse, 160, 255)), 255};
+            }
+            DrawTextureEx(bossTex, bossPos, 0.0f, 2.0f, tint);
+
+            // Render Rock Projectiles
+            Texture2D rockTex = assets.getTexture("rock_projectile");
+            for (const auto& rock : m_boss.getRocks()) {
+                if (!rock.active) continue;
+                DrawTexture(rockTex, static_cast<int>(ox + rock.pos.x), static_cast<int>(oy + rock.pos.y), WHITE);
+            }
+
+            // Render Explosion Particles during Dying sequence
+            for (const auto& exp : m_boss.getExplosions()) {
+                if (!exp.active) continue;
+                int ex = static_cast<int>(ox + exp.pos.x);
+                int ey = static_cast<int>(oy + exp.pos.y);
+                DrawCircle(ex, ey, exp.radius, Color{250, 204, 21, 230});
+                DrawCircleLines(ex, ey, exp.radius + 1.5f, Color{220, 38, 38, 255});
+            }
+        }
+
+        // Render Boss Drops (Heart Container)
+        for (const auto& drop : m_bossDrops) {
+            if (!drop.active) continue;
+            Texture2D tex = assets.getTexture(drop.getTextureName());
+            int dx = static_cast<int>(ox + drop.pos.x);
+            int dy = static_cast<int>(oy + drop.pos.y);
+            DrawTexture(tex, dx, dy, WHITE);
+        }
+    }
+
     // Render Hero sprite
     const auto& health = m_player.getHealth();
     Texture2D heroTex = assets.getTexture(m_player.getTextureName());
@@ -627,8 +824,16 @@ void DungeonScene::render() {
     m_uiRenderer.renderHearts(m_player.getHealth());
     m_uiRenderer.renderInventory(m_player.getInventory());
 
+    if (m_dungeon.getCurrentRoomId() == 6 && !m_boss.isDefeated()) {
+        m_uiRenderer.renderBossHealthBar("ANCIENT EYE GOLEM", m_boss.getHP(), m_boss.getMaxHP());
+    }
+
     if (health.isDead()) {
         m_uiRenderer.renderGameOver();
+    }
+
+    if (m_victoryOverlayOpen) {
+        m_uiRenderer.renderVictoryScreen(m_player.getHealth().getMaxHearts());
     }
 
     // Dialogue Box overlay (e.g. Bow obtained)

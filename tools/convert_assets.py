@@ -657,6 +657,134 @@ for mname, mrows in m9_sprite_list:
             mpix.append(m9_pal.get(ch, (0, 0, 0, 0)))
     assets.append((mname, mpix))
 
+# Milestone 10: Boss Golem (Armored, Charging, Stunned), Rock Projectile, Heart Container
+m10_pal = {
+    '.': (0, 0, 0, 0),
+    'O': (2, 6, 23, 255),      # Deep black outline #020617
+    'D': (30, 41, 59, 255),    # Dark stone #1e293b
+    'M': (71, 85, 105, 255),   # Mid stone #475569
+    'L': (148, 163, 184, 255), # Light stone #94a3b8
+    'C': (6, 182, 212, 255),   # Cyan rune/eye #06b6d4
+    'A': (103, 232, 249, 255), # Bright aqua #67e8f9
+    'R': (220, 38, 38, 255),   # Crimson red #dc2626
+    'F': (248, 113, 113, 255), # Bright red/pink #f87171
+    'Y': (250, 204, 21, 255),  # Bright gold #facc15
+    'G': (202, 138, 4, 255),   # Dark gold #ca8a04
+    'W': (255, 255, 255, 255), # Pure white #ffffff
+    'B': (120, 53, 15, 255),   # Earth brown #78350f
+    'S': (180, 83, 9, 255),    # Amber stone #b45309
+}
+
+boss_golem_armored_rows = [
+    "...OOOOOOOOOO...",
+    "..OLLMMMMMMLLO..",
+    ".OLMDDDDDDDDMLO.",
+    "OLMDCLLMMLLCDMLO",
+    "OMDCLMMMMMMCLDMO",
+    "OMDMMOOOOOOMMDMO",
+    "OMDMOCCCCCCOMDMO",
+    "OMDMOCAAWAACOMDO",
+    "OMDMOCCCCCCOMDMO",
+    "OMDMMOOOOOOMMDMO",
+    "OLMDCLMMMMCLDMLO",
+    "OLMDDDDDDDDDDMLO",
+    ".OOMMDDDDDDMMOO.",
+    ".ODMMO....OMMDO.",
+    ".ODMMO....OMMDO.",
+    ".OOOO......OOOO.",
+]
+
+boss_golem_charging_rows = [
+    "...OOOOOOOOOO...",
+    "..OLLMMMMMMLLO..",
+    ".OLMDDDDDDDDMLO.",
+    "OLMDRLLMMLLRDMLO",
+    "OMDROOOOOOOOORMO",
+    "OMDOFFFFFFFFODMO",
+    "OMDOFRRRRRRFODMO",
+    "OMDOFRRYYRRFODMO",
+    "OMDOFRRWWYRFODMO",
+    "OMDOFRRRRRRFODMO",
+    "OMDOFFFFFFFFODMO",
+    "OLMDOOOOOOOODMLO",
+    ".OOMMDDDDDDMMOO.",
+    ".ODMMO....OMMDO.",
+    ".ODMMO....OMMDO.",
+    ".OOOO......OOOO.",
+]
+
+boss_golem_stunned_rows = [
+    "................",
+    "...OOOOOOOOOO...",
+    "..ODDDDDDDDDDO..",
+    ".ODMLLDDDDLLDMO.",
+    "ODMLOOOOOOOOOMDO",
+    "ODMDOYYYYYYODMMO",
+    "ODMDYYOYYOYYDMMO",
+    "ODMDOYOYYOYODMMO",
+    "ODMDYYOYYOYYDMMO",
+    "ODMDOYYYYYYODMMO",
+    "ODMLOOOOOOOOOMDO",
+    ".ODDDDDDDDDDDDO.",
+    ".OOMMDDDDDDMMOO.",
+    "..ODMO....OMDO..",
+    "..OOOO....OOOO..",
+    "................",
+]
+
+rock_projectile_rows = [
+    "................",
+    "................",
+    "................",
+    ".....OOOOOO.....",
+    "....OLLMMLDO....",
+    "...OLMMMMMDDO...",
+    "...OMMLLMMDDO...",
+    "...OMMMMMDDDO...",
+    "...ODMMMMDDDO...",
+    "....ODDDDDDO....",
+    ".....OOOOOO.....",
+    "................",
+    "................",
+    "................",
+    "................",
+    "................",
+]
+
+heart_container_rows = [
+    "................",
+    "..OOOO....OOOO..",
+    ".OYYYYO..OYYYYO.",
+    "OYRRRRYOYYRRRRYO",
+    "OYRWWWRYYRRRRRYO",
+    "OYRWWRRRRRRRRRYO",
+    "OYRRRRRRRRRRRRYO",
+    "OYRRRRRRRRRRRRYO",
+    ".OYRRRRRRRRRRYO.",
+    "..OYRRRRRRRRYO..",
+    "...OYRRRRRRYO...",
+    "....OYRRRRYO....",
+    ".....OYRRYO.....",
+    "......OYYO......",
+    ".......OO.......",
+    "................",
+]
+
+m10_sprite_list = [
+    ('boss_golem_armored', boss_golem_armored_rows),
+    ('boss_golem_charging', boss_golem_charging_rows),
+    ('boss_golem_stunned', boss_golem_stunned_rows),
+    ('rock_projectile', rock_projectile_rows),
+    ('heart_container', heart_container_rows),
+]
+
+for mname, mrows in m10_sprite_list:
+    mpix = []
+    for r in mrows:
+        for ch in r:
+            mpix.append(m10_pal.get(ch, (0, 0, 0, 0)))
+    assets.append((mname, mpix))
+
 
 
 # Write GeneratedAssets.hpp
