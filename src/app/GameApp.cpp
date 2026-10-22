@@ -1,6 +1,7 @@
 #include "app/GameApp.hpp"
 #include "raylib.h"
 #include "core/GameConfig.hpp"
+#include "core/SaveSystem.hpp"
 #include "render/AssetManager.hpp"
 #include "render/AudioPlayer.hpp"
 #include <iostream>
@@ -52,6 +53,17 @@ void GameApp::update(float dt) {
         case Core::GameState::Title:
             m_titleScene.update(dt);
             if (m_titleScene.isFinished()) {
+                if (m_titleScene.wantsContinue()) {
+                    Core::SaveData save;
+                    if (Core::SaveSystem::loadFromFile(save)) {
+                        m_overworldScene.applySaveData(save);
+                        m_dungeonScene.applySaveData(save);
+                        m_state = save.inDungeon ? Core::GameState::Dungeon : Core::GameState::Overworld;
+                        break;
+                    }
+                }
+                m_overworldScene.reset();
+                m_dungeonScene.reset();
                 m_state = Core::GameState::Overworld;
             }
             break;

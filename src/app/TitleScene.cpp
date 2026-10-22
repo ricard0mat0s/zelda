@@ -1,6 +1,7 @@
 #include "app/TitleScene.hpp"
 #include "raylib.h"
 #include "core/GameConfig.hpp"
+#include "core/SaveSystem.hpp"
 #include "render/AudioPlayer.hpp"
 #include <cmath>
 
@@ -14,6 +15,8 @@ void TitleScene::reset() {
     m_timer = 0.0f;
     m_promptVisible = true;
     m_startRequested = false;
+    m_continueRequested = false;
+    m_hasSave = Core::SaveSystem::hasSaveFile();
     m_fadeProgress = 0.0f;
 }
 
@@ -21,12 +24,21 @@ void TitleScene::update(float dt) {
     m_timer += dt;
 
     if (!m_startRequested) {
+        m_hasSave = Core::SaveSystem::hasSaveFile();
+
         // Blinking prompt logic: visible for 1.2s, invisible for 0.2s
         float cycle = std::fmod(m_timer, 1.4f);
         m_promptVisible = (cycle < 1.2f);
 
         if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_ENTER)) {
             m_startRequested = true;
+            m_continueRequested = m_hasSave;
+            Render::AudioPlayer::instance().playGameStart();
+        } else if (m_hasSave && IsKeyPressed(KEY_N)) {
+            Core::SaveSystem::deleteSaveFile();
+            m_hasSave = false;
+            m_startRequested = true;
+            m_continueRequested = false;
             Render::AudioPlayer::instance().playGameStart();
         }
     } else {
@@ -84,9 +96,14 @@ void TitleScene::render() {
     drawCenteredText("ARCADE HERO", 112, 20, goldColor, goldShadow, 2);
     drawCenteredText("16-BIT RETRO ADVENTURE", 140, 10, Color{144, 205, 244, 255}, Color{10, 30, 60, 255});
 
-    // 4. Prompt: "PRESS SPACE TO START"
+    // 4. Prompt: "PRESS SPACE TO START" or "CONTINUE / NEW GAME"
     if (m_promptVisible) {
-        drawCenteredText("PRESS SPACE TO START", 175, 10, WHITE, BLACK);
+        if (m_hasSave) {
+            drawCenteredText("PRESS ENTER TO CONTINUE", 170, 10, Color{250, 204, 21, 255}, BLACK);
+            drawCenteredText("PRESS [N] FOR NEW GAME", 186, 8, WHITE, BLACK);
+        } else {
+            drawCenteredText("PRESS SPACE TO START", 175, 10, WHITE, BLACK);
+        }
     }
 
     // 5. Controls hint

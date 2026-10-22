@@ -53,6 +53,8 @@ void DungeonScene::enterDungeon(const Core::Player& overworldPlayer) {
     m_player.getInventory() = overworldPlayer.getInventory();
     m_player.setPosition(Core::Vec2{152.0f, 180.0f});
     m_player.setFacing(Core::Direction::Up);
+    m_roomEntrancePos = Core::Vec2{152.0f, 180.0f};
+    m_roomEntranceFacing = Core::Direction::Up;
     m_bannerTimer = 0.0f;
     m_wantsExitToOverworld = false;
     m_arrows.clear();
@@ -62,6 +64,39 @@ void DungeonScene::enterDungeon(const Core::Player& overworldPlayer) {
     if (r4 && !r4->arenaCleared && m_bats.empty() && m_skeletons.empty()) {
         spawnArenaEnemies();
     }
+    saveCheckpoint();
+}
+
+void DungeonScene::saveCheckpoint() {
+    Core::SaveData data = Core::SaveSystem::captureState(
+        m_player, m_dungeon, true, m_roomEntrancePos, m_roomEntranceFacing, m_boss.isDefeated());
+    Core::SaveSystem::saveToFile(data);
+}
+
+void DungeonScene::applySaveData(const Core::SaveData& data) {
+    Core::SaveSystem::applyState(data, m_player, m_dungeon);
+    m_roomEntrancePos = data.respawnPos;
+    m_roomEntranceFacing = data.respawnFacing;
+    m_arrows.clear();
+    m_itemDrops.clear();
+    m_bossDrops.clear();
+    m_dialogueBox.close();
+
+    if (data.room4ArenaCleared) {
+        m_bats.clear();
+        m_skeletons.clear();
+    } else {
+        spawnArenaEnemies();
+    }
+
+    if (data.room6BossDefeated) {
+        m_boss.setPhase(Core::BossPhase::Defeated);
+    } else {
+        m_boss.reset(144.0f, 56.0f);
+    }
+
+    Core::Vec2 cam = m_dungeon.getCameraOffset();
+    m_camera.target = Vector2{cam.x, cam.y};
 }
 
 void DungeonScene::update(float dt) {
@@ -80,13 +115,13 @@ void DungeonScene::update(float dt) {
         return;
     }
 
-    // 0b. If dead, allow retry
+    // 0b. If dead, allow retry (respawn at current room entrance with retained inventory!)
     if (m_player.getHealth().isDead()) {
         if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) {
             m_player.heal(m_player.getHealth().getMaxHP());
-            m_player.setPosition(Core::Vec2{152.0f, 180.0f});
-            m_player.setFacing(Core::Direction::Up);
-            m_dungeon.setCurrentRoomId(1);
+            m_player.setPosition(m_roomEntrancePos);
+            m_player.setFacing(m_roomEntranceFacing);
+            m_arrows.clear();
 
             auto* r4 = m_dungeon.getRoom(4);
             if (r4 && !r4->arenaCleared) {
@@ -122,7 +157,10 @@ void DungeonScene::update(float dt) {
         m_dungeon.update(dt);
         if (!m_dungeon.isTransitioning()) {
             m_player.setPosition(m_dungeon.getTargetLocalPlayerPos());
+            m_roomEntrancePos = m_player.getPosition();
+            m_roomEntranceFacing = m_player.getFacing();
             m_arrows.clear(); // Clear arrows across transitions
+            saveCheckpoint();
         }
 
         // Smooth camera following during pan
@@ -136,6 +174,7 @@ void DungeonScene::update(float dt) {
         if (m_dungeon.checkChestInteract(m_player.getPosition(), m_player.getFacing())) {
             m_player.getInventory().obtainBow();
             Render::AudioPlayer::instance().playChestFanfare();
+            saveCheckpoint();
             m_dialogueBox.show("Found the Bow & Quiver! Press [X] to fire arrows across chasms.");
             return;
         }
@@ -177,6 +216,7 @@ void DungeonScene::update(float dt) {
         // Check collision with crystal switch in current room
         if (m_dungeon.checkCrystalSwitchHit(arrow.getHitbox())) {
             Render::AudioPlayer::instance().playSecretChime();
+            saveCheckpoint();
             arrow.deactivate();
             continue;
         }
@@ -261,6 +301,7 @@ void DungeonScene::update(float dt) {
 
     if (m_dungeon.tryUnlockDoor(m_player.getPosition(), m_player.getFacing(), m_player.getInventory())) {
         Render::AudioPlayer::instance().playSecretChime();
+        saveCheckpoint();
         m_dialogueBox.show("Unlocked the Boss Sanctum door!");
     }
 
@@ -348,6 +389,7 @@ void DungeonScene::update(float dt) {
         if (allBatsDead && allSkelsDead) {
             if (m_dungeon.clearArena()) {
                 Render::AudioPlayer::instance().playSecretChime();
+                saveCheckpoint();
                 // Spawn SmallKey drop at room center
                 Core::ItemDrop keyDrop;
                 keyDrop.pos = Core::Vec2(152.0f, 112.0f);
@@ -365,6 +407,7 @@ void DungeonScene::update(float dt) {
                 if (drop.type == Core::ItemType::SmallKey) {
                     m_player.getInventory().addKeys(1);
                     Render::AudioPlayer::instance().playSecretChime();
+                    saveCheckpoint();
                     m_dialogueBox.show("Obtained a Small Key! Use it to unlock the Boss Gate in Room 5.");
                     drop.active = false;
                 } else if (drop.type == Core::ItemType::HeartRecovery) {
@@ -448,6 +491,7 @@ void DungeonScene::update(float dt) {
             if (m_boss.isDefeated()) {
                 if (m_dungeon.clearArena()) {
                     Render::AudioPlayer::instance().playSecretChime();
+                    saveCheckpoint();
                     Core::ItemDrop hcDrop;
                     hcDrop.pos = Core::Vec2(152.0f, 104.0f);
                     hcDrop.type = Core::ItemType::HeartContainer;
@@ -467,6 +511,7 @@ void DungeonScene::update(float dt) {
                     Render::AudioPlayer::instance().playChestFanfare();
                     m_victory = true;
                     m_victoryOverlayOpen = true;
+                    saveCheckpoint();
                     drop.active = false;
                 }
             }
@@ -477,6 +522,7 @@ void DungeonScene::update(float dt) {
     // 10. Pressure plate trigger
     if (m_dungeon.checkPlateTrigger(m_player.getWorldHitbox())) {
         Render::AudioPlayer::instance().playSecretChime();
+        saveCheckpoint();
     }
 
     // 11. Doorway transition trigger

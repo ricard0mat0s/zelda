@@ -19,6 +19,7 @@
 #include "../src/core/Projectile.hpp"
 #include "../src/core/DungeonEnemies.hpp"
 #include "../src/core/BossGolem.hpp"
+#include "../src/core/SaveSystem.hpp"
 #include "../src/render/GeneratedAssets.hpp"
 
 using namespace Core;
@@ -940,6 +941,82 @@ void test_boss_golem_phases_and_combat() {
     testsPassed++;
 }
 
+void test_save_system_serialization_and_fallback() {
+    SaveData original;
+    original.maxHearts = 4;
+    original.hasSword = true;
+    original.hasBow = true;
+    original.keys = 1;
+    original.inDungeon = true;
+    original.dungeonRoomId = 5;
+    original.respawnPos = Vec2(160.0f, 200.0f);
+    original.respawnFacing = Direction::Up;
+    original.room1PlatePressed = true;
+    original.room2SwitchActive = true;
+    original.room3ChestOpened = true;
+    original.room4ArenaCleared = true;
+    original.room5BossGateOpen = true;
+    original.room6BossDefeated = false;
+
+    std::string jsonStr = SaveSystem::serialize(original);
+    TEST_ASSERT(!jsonStr.empty(), "Serialized JSON must not be empty");
+
+    SaveData loaded;
+    bool ok = SaveSystem::deserialize(jsonStr, loaded);
+    TEST_ASSERT(ok, "Valid JSON deserializes cleanly");
+    TEST_ASSERT(loaded.maxHearts == 4, "maxHearts preserved");
+    TEST_ASSERT(loaded.hasSword && loaded.hasBow, "Weapons preserved");
+    TEST_ASSERT(loaded.keys == 1, "Keys preserved");
+    TEST_ASSERT(loaded.inDungeon && loaded.dungeonRoomId == 5, "Dungeon room preserved");
+    TEST_ASSERT(std::abs(loaded.respawnPos.x - 160.0f) < 0.01f && std::abs(loaded.respawnPos.y - 200.0f) < 0.01f, "Respawn position preserved");
+    TEST_ASSERT(loaded.respawnFacing == Direction::Up, "Respawn facing preserved");
+    TEST_ASSERT(loaded.room1PlatePressed && loaded.room2SwitchActive && loaded.room3ChestOpened && loaded.room4ArenaCleared && loaded.room5BossGateOpen, "Dungeon flags preserved");
+    TEST_ASSERT(!loaded.room6BossDefeated, "Boss defeated flag preserved");
+
+    // Corrupted / malformed storage fallback verification
+    SaveData corruptedOut;
+    corruptedOut.maxHearts = 99;
+    corruptedOut.hasSword = true;
+    TEST_ASSERT(!SaveSystem::deserialize("", corruptedOut), "Empty string rejected");
+    TEST_ASSERT(corruptedOut.maxHearts == 3 && !corruptedOut.hasSword, "Fallback resets to clean defaults");
+
+    TEST_ASSERT(!SaveSystem::deserialize("{ broken json ", corruptedOut), "Truncated JSON rejected");
+    TEST_ASSERT(!SaveSystem::deserialize("{\"version\": 999}", corruptedOut), "Unsupported version rejected");
+    TEST_ASSERT(!SaveSystem::deserialize("{\"version\": 1, \"maxHearts\": -5}", corruptedOut), "Invalid negative hearts rejected");
+
+    // Capture and apply state on Player & Dungeon
+    Player p1;
+    p1.getHealth().addHeartContainer();
+    p1.getInventory().obtainSword();
+    p1.getInventory().obtainBow();
+    p1.getInventory().addKeys(1);
+
+    Dungeon d1;
+    d1.init();
+    d1.setCurrentRoomId(4);
+    d1.getRoom(1)->plate.pressed = true;
+    d1.getRoom(2)->crystalSwitch.active = true;
+    d1.getRoom(3)->chest.opened = true;
+    d1.getRoom(4)->arenaCleared = true;
+
+    SaveData captured = SaveSystem::captureState(p1, d1, true, Vec2(152.0f, 196.0f), Direction::Up, false);
+
+    Player p2;
+    Dungeon d2;
+    d2.init();
+    SaveSystem::applyState(captured, p2, d2);
+
+    TEST_ASSERT(p2.getHealth().getMaxHearts() == 4, "Applied max hearts is 4");
+    TEST_ASSERT(p2.getInventory().hasSword && p2.getInventory().hasBow && p2.getInventory().keys == 1, "Applied inventory matches");
+    TEST_ASSERT(d2.getCurrentRoomId() == 4, "Applied room ID is 4");
+    TEST_ASSERT(d2.getRoom(1)->getDoor(Direction::Up) == DoorState::Open, "Room 1 door unlocked from save");
+    TEST_ASSERT(d2.getRoom(2)->getDoor(Direction::Up) == DoorState::Open, "Room 2 door unlocked from save");
+    TEST_ASSERT(d2.getRoom(3)->chest.opened, "Room 3 chest opened from save");
+    TEST_ASSERT(d2.getRoom(4)->arenaCleared, "Room 4 arena cleared from save");
+
+    testsPassed++;
+}
+
 int main() {
     std::cout << "=== Running Headless Core Tests ===" << std::endl;
     test_vector_math();
@@ -969,6 +1046,7 @@ int main() {
     test_skeleton_patrol_chase_and_knockback();
     test_monster_arena_lock_and_key_unlock();
     test_boss_golem_phases_and_combat();
+    test_save_system_serialization_and_fallback();
 
     std::cout << "Tests Passed: " << testsPassed << " | Tests Failed: " << testsFailed << std::endl;
     return testsFailed == 0 ? 0 : 1;

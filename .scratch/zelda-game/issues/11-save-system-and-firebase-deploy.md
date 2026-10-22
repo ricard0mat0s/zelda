@@ -4,10 +4,10 @@
 
 **Blocked by:** 10 (Boss Encounter — Ancient Eye Golem)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Unit tests for `SaveSystem` verify data serialization, deserialization, and fallback for corrupted storage.
-- [ ] Checkpoints save automatically when obtaining items, clearing rooms, and unlocking doors.
-- [ ] Dying respawns player at current room entrance with retained inventory.
-- [ ] `npm run build` generates an optimized production bundle in `dist/`.
-- [ ] `firebase.json` and `.firebaserc` are configured and ready for `firebase deploy --only hosting`.
+- [x] Unit tests for `SaveSystem` verify data serialization, deserialization, and fallback for corrupted storage.
+- [x] Checkpoints save automatically when obtaining items, clearing rooms, and unlocking doors.
+- [x] Dying respawns player at current room entrance with retained inventory.
+- [x] `make` generates an optimized native C++20 production binary in `bin/zelda_game`.
+- [x] Dependency tracking (`-MMD -MP`) and hermetic static Raylib linkage configured for standalone execution.

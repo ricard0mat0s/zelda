@@ -39,10 +39,13 @@ void OverworldScene::reset() {
 }
 
 void OverworldScene::update(float dt) {
-    // 0. If dead, allow retry
+    // 0. If dead, allow retry (respawn at clearing with retained inventory)
     if (m_player.getHealth().isDead()) {
         if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) {
-            reset();
+            m_player.heal(m_player.getHealth().getMaxHP());
+            m_player.setPosition(Core::Vec2{200.0f, 280.0f});
+            m_player.setFacing(Core::Direction::Down);
+            m_arrows.clear();
         }
         return;
     }
@@ -78,6 +81,18 @@ void OverworldScene::update(float dt) {
                 m_shrineHasSword = false;
                 m_player.getInventory().obtainSword();
                 Render::AudioPlayer::instance().playSecretChime();
+
+                // Auto-save checkpoint upon obtaining the Sword
+                Core::SaveData save;
+                Core::SaveSystem::loadFromFile(save);
+                save.maxHearts = m_player.getHealth().getMaxHearts();
+                save.hasSword = true;
+                save.hasBow = m_player.getInventory().hasBow;
+                save.keys = m_player.getInventory().keys;
+                save.inDungeon = false;
+                save.respawnPos = Core::Vec2{200.0f, 204.0f};
+                save.respawnFacing = Core::Direction::Down;
+                Core::SaveSystem::saveToFile(save);
             });
         } else {
             m_dialogueBox.show("The ancient stone pedestal stands quiet in the glade.");
@@ -356,6 +371,19 @@ void OverworldScene::returnFromDungeon(const Core::Player& dungeonPlayer) {
     m_player.setFacing(Core::Direction::Down);
     m_bannerTimer = 0.0f;
     m_wantsEnterDungeon = false;
+}
+
+void OverworldScene::applySaveData(const Core::SaveData& data) {
+    m_player.setHealth(Core::Health(data.maxHearts));
+    m_player.getInventory().hasSword = data.hasSword;
+    m_player.getInventory().hasBow = data.hasBow;
+    m_player.getInventory().keys = data.keys;
+    m_shrineHasSword = !data.hasSword;
+
+    if (!data.inDungeon) {
+        m_player.setPosition(data.respawnPos);
+        m_player.setFacing(data.respawnFacing);
+    }
 }
 
 } // namespace App

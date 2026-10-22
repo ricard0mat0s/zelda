@@ -6,6 +6,7 @@
 #include "core/ItemDrop.hpp"
 #include "core/Shield.hpp"
 #include "core/Projectile.hpp"
+#include "core/SaveSystem.hpp"
 #include "render/MapRenderer.hpp"
 #include "render/UIRenderer.hpp"
 #include "render/DialogueBox.hpp"
@@ -32,6 +33,7 @@ public:
     bool wantsEnterDungeon() const { return m_wantsEnterDungeon; }
     void clearDungeonRequest() { m_wantsEnterDungeon = false; }
     void returnFromDungeon(const Core::Player& dungeonPlayer);
+    void applySaveData(const Core::SaveData& data);
 
 private:
     Core::MapData m_map;

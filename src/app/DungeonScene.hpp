@@ -7,6 +7,7 @@
 #include "core/BossGolem.hpp"
 #include "core/ItemDrop.hpp"
 #include "core/Shield.hpp"
+#include "core/SaveSystem.hpp"
 #include "render/UIRenderer.hpp"
 #include "render/DialogueBox.hpp"
 #include "raylib.h"
@@ -22,6 +23,8 @@ public:
     void reset();
 
     void enterDungeon(const Core::Player& overworldPlayer);
+    void applySaveData(const Core::SaveData& data);
+    void saveCheckpoint();
 
     bool wantsExitToOverworld() const { return m_wantsExitToOverworld; }
     void clearExitRequest() { m_wantsExitToOverworld = false; }
@@ -55,6 +58,8 @@ private:
 
     Core::BossGolem m_boss;
     std::vector<Core::ItemDrop> m_bossDrops;
+    Core::Vec2 m_roomEntrancePos{152.0f, 180.0f};
+    Core::Direction m_roomEntranceFacing = Core::Direction::Up;
     float m_screenShakeTimer = 0.0f;
     float m_swordBounceSoundCooldown = 0.0f;
     bool m_victory = false;
