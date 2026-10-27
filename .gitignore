@@ -8,3 +8,4 @@ bin/
 *.d
 savegame.json
 vendor/raylib/
+.scratch/

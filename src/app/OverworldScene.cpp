@@ -36,12 +36,38 @@ void OverworldScene::reset() {
     m_camera.target = Vector2{0.0f, 0.0f};
     m_camera.rotation = 0.0f;
     m_camera.zoom = 1.0f;
+    snapCamera();
+}
+
+void OverworldScene::snapCamera() {
+    const float halfVW = Core::GameConfig::VIRTUAL_WIDTH * 0.5f;
+    const float halfVH = Core::GameConfig::VIRTUAL_HEIGHT * 0.5f;
+    const float maxX = static_cast<float>(Core::GameConfig::WORLD_WIDTH - Core::GameConfig::VIRTUAL_WIDTH);
+    const float maxY = static_cast<float>(Core::GameConfig::WORLD_HEIGHT - Core::GameConfig::VIRTUAL_HEIGHT);
+
+    m_camera.target.x = std::clamp(m_player.getPosition().x + 8.0f - halfVW, 0.0f, maxX);
+    m_camera.target.y = std::clamp(m_player.getPosition().y + 8.0f - halfVH, 0.0f, maxY);
 }
 
 void OverworldScene::update(float dt) {
+    Core::GameInput input;
+    input.up = IsKeyDown(KEY_W) || IsKeyDown(KEY_UP);
+    input.down = IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN);
+    input.left = IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT);
+    input.right = IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT);
+    input.confirmPressed = IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_ENTER);
+    input.interactPressed = IsKeyPressed(KEY_E) || IsKeyPressed(KEY_ENTER);
+    input.attackPressed = IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_Z);
+    input.bowPressed = IsKeyPressed(KEY_X);
+    input.debugDamagePressed = IsKeyPressed(KEY_H);
+    input.debugHealPressed = IsKeyPressed(KEY_J);
+    update(dt, input);
+}
+
+void OverworldScene::update(float dt, const Core::GameInput& input) {
     // 0. If dead, allow retry (respawn at clearing with retained inventory)
     if (m_player.getHealth().isDead()) {
-        if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) {
+        if (input.confirmPressed) {
             m_player.heal(m_player.getHealth().getMaxHP());
             m_player.setPosition(Core::Vec2{200.0f, 280.0f});
             m_player.setFacing(Core::Direction::Down);
@@ -53,20 +79,20 @@ void OverworldScene::update(float dt) {
     // 1. Dialogue box handling takes highest priority
     if (m_dialogueBox.isOpen()) {
         m_dialogueBox.update(dt);
-        if (IsKeyPressed(KEY_E) || IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) {
+        if (input.interactPressed || input.confirmPressed) {
             m_dialogueBox.advance();
         }
         return; // Freeze movement and attack while reading
     }
 
     // Debug testing controls for health verification
-    if (IsKeyPressed(KEY_H)) {
+    if (input.debugDamagePressed) {
         auto res = m_player.takeDamage(1);
         if (res.damaged) {
             Render::AudioPlayer::instance().playPlayerHurt();
         }
     }
-    if (IsKeyPressed(KEY_J)) {
+    if (input.debugHealPressed) {
         m_player.heal(1);
     }
 
@@ -75,7 +101,7 @@ void OverworldScene::update(float dt) {
     float dy = (m_player.getPosition().y + 8.0f) - m_shrinePos.y;
     bool nearShrine = (std::sqrt(dx * dx + dy * dy) <= 26.0f);
 
-    if (nearShrine && (IsKeyPressed(KEY_E) || IsKeyPressed(KEY_ENTER))) {
+    if (nearShrine && input.interactPressed) {
         if (m_shrineHasSword) {
             m_dialogueBox.show("It's dangerous to go alone! Take this.", [this]() {
                 m_shrineHasSword = false;
@@ -101,14 +127,14 @@ void OverworldScene::update(float dt) {
     }
 
     // 3. Attack input (SPACE or Z)
-    if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_Z)) {
+    if (input.attackPressed) {
         if (m_player.startAttack()) {
             Render::AudioPlayer::instance().playSwordSlash();
         }
     }
 
     // Secondary weapon: Bow & Arrow (X)
-    if (IsKeyPressed(KEY_X)) {
+    if (input.bowPressed) {
         if (m_player.getInventory().hasBow && !m_player.isAttacking()) {
             Core::Vec2 spawnPos = m_player.getPosition();
             switch (m_player.getFacing()) {
@@ -123,13 +149,13 @@ void OverworldScene::update(float dt) {
     }
 
     // 4. Process movement input
-    Core::MovementInput input;
-    input.up = IsKeyDown(KEY_W) || IsKeyDown(KEY_UP);
-    input.down = IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN);
-    input.left = IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT);
-    input.right = IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT);
+    Core::MovementInput moveInput;
+    moveInput.up = input.up;
+    moveInput.down = input.down;
+    moveInput.left = input.left;
+    moveInput.right = input.right;
 
-    m_player.update(dt, input, m_map);
+    m_player.update(dt, moveInput, m_map);
 
     // Update arrows
     for (auto& arrow : m_arrows) {

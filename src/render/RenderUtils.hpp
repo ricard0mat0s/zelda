@@ -2,6 +2,7 @@
 
 #include "raylib.h"
 #include "core/GameConfig.hpp"
+#include <string>
 
 namespace Render {
 
@@ -17,6 +18,7 @@ public:
     void endVirtual();
 
     void drawScaled();
+    bool saveScreenshot(const std::string& path, int scale = 3) const;
 
     int getVirtualWidth() const { return Core::GameConfig::VIRTUAL_WIDTH; }
     int getVirtualHeight() const { return Core::GameConfig::VIRTUAL_HEIGHT; }

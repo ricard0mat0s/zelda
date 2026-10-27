@@ -23,17 +23,25 @@ public:
     void reset();
 
     void update(float dt);
+    void update(float dt, const Core::GameInput& input);
     void render();
 
     const Core::Player& getPlayer() const { return m_player; }
     Core::Player& getPlayer() { return m_player; }
 
     const Core::MapData& getMap() const { return m_map; }
+    const Render::DialogueBox& getDialogueBox() const { return m_dialogueBox; }
+    bool shrineHasSword() const { return m_shrineHasSword; }
+    Core::Vec2 getShrinePos() const { return m_shrinePos; }
+    const std::vector<Core::Slime>& getSlimes() const { return m_slimes; }
+    const std::vector<Core::ItemDrop>& getItemDrops() const { return m_itemDrops; }
+    const std::vector<Core::Arrow>& getArrows() const { return m_arrows; }
 
     bool wantsEnterDungeon() const { return m_wantsEnterDungeon; }
     void clearDungeonRequest() { m_wantsEnterDungeon = false; }
     void returnFromDungeon(const Core::Player& dungeonPlayer);
     void applySaveData(const Core::SaveData& data);
+    void snapCamera();
 
 private:
     Core::MapData m_map;

@@ -38,8 +38,16 @@ public:
     Core::Dungeon& getDungeon() { return m_dungeon; }
 
     const Core::BossGolem& getBoss() const { return m_boss; }
+    bool isVictoryOverlayOpen() const { return m_victoryOverlayOpen; }
+    const Render::DialogueBox& getDialogueBox() const { return m_dialogueBox; }
+    const std::vector<Core::Bat>& getBats() const { return m_bats; }
+    const std::vector<Core::Skeleton>& getSkeletons() const { return m_skeletons; }
+    const std::vector<Core::ItemDrop>& getItemDrops() const { return m_itemDrops; }
+    const std::vector<Core::ItemDrop>& getBossDrops() const { return m_bossDrops; }
+    const std::vector<Core::Arrow>& getArrows() const { return m_arrows; }
 
     void update(float dt);
+    void update(float dt, const Core::GameInput& input);
     void render();
 
 private:

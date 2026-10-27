@@ -100,6 +100,19 @@ void DungeonScene::applySaveData(const Core::SaveData& data) {
 }
 
 void DungeonScene::update(float dt) {
+    Core::GameInput input;
+    input.up = IsKeyDown(KEY_W) || IsKeyDown(KEY_UP);
+    input.down = IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN);
+    input.left = IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT);
+    input.right = IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT);
+    input.confirmPressed = IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_ENTER);
+    input.interactPressed = IsKeyPressed(KEY_E) || IsKeyPressed(KEY_ENTER);
+    input.attackPressed = IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_Z);
+    input.bowPressed = IsKeyPressed(KEY_X);
+    update(dt, input);
+}
+
+void DungeonScene::update(float dt, const Core::GameInput& input) {
     if (m_screenShakeTimer > 0.0f) {
         m_screenShakeTimer = std::max(0.0f, m_screenShakeTimer - dt);
     }
@@ -109,7 +122,7 @@ void DungeonScene::update(float dt) {
 
     // 0. If Victory overlay is open, allow dismissal to continue exploring
     if (m_victoryOverlayOpen) {
-        if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_E)) {
+        if (input.confirmPressed || input.interactPressed) {
             m_victoryOverlayOpen = false;
         }
         return;
@@ -117,7 +130,7 @@ void DungeonScene::update(float dt) {
 
     // 0b. If dead, allow retry (respawn at current room entrance with retained inventory!)
     if (m_player.getHealth().isDead()) {
-        if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) {
+        if (input.confirmPressed) {
             m_player.heal(m_player.getHealth().getMaxHP());
             m_player.setPosition(m_roomEntrancePos);
             m_player.setFacing(m_roomEntranceFacing);
@@ -144,7 +157,7 @@ void DungeonScene::update(float dt) {
     // 1. Dialogue box handling takes highest priority
     if (m_dialogueBox.isOpen()) {
         m_dialogueBox.update(dt);
-        if (IsKeyPressed(KEY_E) || IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) {
+        if (input.interactPressed || input.confirmPressed) {
             m_dialogueBox.advance();
         }
         return;
@@ -170,7 +183,7 @@ void DungeonScene::update(float dt) {
     }
 
     // 3. Interact with treasure chest (Room 3)
-    if (IsKeyPressed(KEY_E) || IsKeyPressed(KEY_ENTER)) {
+    if (input.interactPressed) {
         if (m_dungeon.checkChestInteract(m_player.getPosition(), m_player.getFacing())) {
             m_player.getInventory().obtainBow();
             Render::AudioPlayer::instance().playChestFanfare();
@@ -181,14 +194,14 @@ void DungeonScene::update(float dt) {
     }
 
     // 4. Primary sword attack
-    if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_Z)) {
+    if (input.attackPressed) {
         if (m_player.startAttack()) {
             Render::AudioPlayer::instance().playSwordSlash();
         }
     }
 
     // 5. Secondary weapon: Bow & Arrow firing
-    if (IsKeyPressed(KEY_X)) {
+    if (input.bowPressed) {
         if (m_player.getInventory().hasBow && !m_player.isAttacking()) {
             Core::Vec2 spawnPos = m_player.getPosition();
             switch (m_player.getFacing()) {
@@ -281,13 +294,13 @@ void DungeonScene::update(float dt) {
     std::erase_if(m_arrows, [](const Core::Arrow& a) { return !a.isActive(); });
 
     // 7. Movement input
-    Core::MovementInput input;
-    input.up = IsKeyDown(KEY_W) || IsKeyDown(KEY_UP);
-    input.down = IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN);
-    input.left = IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT);
-    input.right = IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT);
+    Core::MovementInput moveInput;
+    moveInput.up = input.up;
+    moveInput.down = input.down;
+    moveInput.left = input.left;
+    moveInput.right = input.right;
 
-    m_player.updateInDungeon(dt, input, m_dungeon);
+    m_player.updateInDungeon(dt, moveInput, m_dungeon);
 
     // 8. Arena entry lock and key door unlocking
     if (m_dungeon.checkArenaEntryLock()) {

@@ -58,4 +58,16 @@ void VirtualCanvas::drawScaled() {
     DrawTexturePro(m_target.texture, source, dest, origin, 0.0f, WHITE);
 }
 
+bool VirtualCanvas::saveScreenshot(const std::string& path, int scale) const {
+    if (!m_initialized || path.empty()) return false;
+    Image img = LoadImageFromTexture(m_target.texture);
+    ImageFlipVertical(&img);
+    if (scale > 1) {
+        ImageResizeNN(&img, Core::GameConfig::VIRTUAL_WIDTH * scale, Core::GameConfig::VIRTUAL_HEIGHT * scale);
+    }
+    bool ok = ExportImage(img, path.c_str());
+    UnloadImage(img);
+    return ok;
+}
+
 } // namespace Render

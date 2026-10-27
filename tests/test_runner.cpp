@@ -1017,6 +1017,16 @@ void test_save_system_serialization_and_fallback() {
     testsPassed++;
 }
 
+void test_game_input_defaults() {
+    GameInput input;
+    TEST_ASSERT(!input.up && !input.down && !input.left && !input.right, "GameInput movement defaults to false");
+    TEST_ASSERT(!input.confirmPressed && !input.interactPressed && !input.attackPressed && !input.bowPressed, "GameInput actions default to false");
+    input.up = true;
+    input.attackPressed = true;
+    TEST_ASSERT(input.up && input.attackPressed, "GameInput state toggles cleanly");
+    testsPassed++;
+}
+
 int main() {
     std::cout << "=== Running Headless Core Tests ===" << std::endl;
     test_vector_math();
@@ -1047,6 +1057,7 @@ int main() {
     test_monster_arena_lock_and_key_unlock();
     test_boss_golem_phases_and_combat();
     test_save_system_serialization_and_fallback();
+    test_game_input_defaults();
 
     std::cout << "Tests Passed: " << testsPassed << " | Tests Failed: " << testsFailed << std::endl;
     return testsFailed == 0 ? 0 : 1;

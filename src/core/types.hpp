@@ -106,4 +106,20 @@ enum class GameState {
     Victory
 };
 
+struct GameInput {
+    bool up = false;
+    bool down = false;
+    bool left = false;
+    bool right = false;
+
+    bool confirmPressed = false;      // SPACE or ENTER
+    bool interactPressed = false;     // E or ENTER
+    bool attackPressed = false;       // SPACE or Z
+    bool bowPressed = false;          // X
+    bool newGamePressed = false;      // N
+    bool backToTitlePressed = false;  // BACKSPACE
+    bool debugDamagePressed = false;  // H
+    bool debugHealPressed = false;    // J
+};
+
 } // namespace Core

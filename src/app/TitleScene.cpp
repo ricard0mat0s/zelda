@@ -21,6 +21,13 @@ void TitleScene::reset() {
 }
 
 void TitleScene::update(float dt) {
+    Core::GameInput input;
+    input.confirmPressed = IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_ENTER);
+    input.newGamePressed = IsKeyPressed(KEY_N);
+    update(dt, input);
+}
+
+void TitleScene::update(float dt, const Core::GameInput& input) {
     m_timer += dt;
 
     if (!m_startRequested) {
@@ -30,11 +37,11 @@ void TitleScene::update(float dt) {
         float cycle = std::fmod(m_timer, 1.4f);
         m_promptVisible = (cycle < 1.2f);
 
-        if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_ENTER)) {
+        if (input.confirmPressed) {
             m_startRequested = true;
             m_continueRequested = m_hasSave;
             Render::AudioPlayer::instance().playGameStart();
-        } else if (m_hasSave && IsKeyPressed(KEY_N)) {
+        } else if (m_hasSave && input.newGamePressed) {
             Core::SaveSystem::deleteSaveFile();
             m_hasSave = false;
             m_startRequested = true;

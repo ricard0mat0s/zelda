@@ -24,6 +24,9 @@ public:
 
     bool isOpen() const { return m_visible; }
     void close() { m_visible = false; }
+    const std::string& getFullText() const { return m_typewriter.getFullText(); }
+    std::string getDisplayedText() const { return m_typewriter.getDisplayedText(); }
+    bool isTextComplete() const { return m_typewriter.isComplete(); }
 
 private:
     Core::Typewriter m_typewriter;
