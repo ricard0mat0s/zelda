@@ -55,13 +55,16 @@ void UIRenderer::renderInventory(const Core::Inventory& inventory) {
         DrawRectangleLines(rightX - 2, slotY - 2, 20, 20, Color{212, 163, 115, 255});
         DrawTexture(bowTex, rightX, slotY, WHITE);
 
-        // "X" badge
-        DrawText("X", rightX - 8, slotY + 4, 8, Color{250, 204, 21, 255});
+        // "X" badge positioned cleanly to the left of the 20x20 item frame with drop shadow
+        int badgeX = rightX - 12;
+        int badgeY = slotY + 4;
+        DrawText("X", badgeX + 1, badgeY + 1, 8, Color{11, 12, 16, 255});
+        DrawText("X", badgeX, badgeY, 8, Color{250, 204, 21, 255});
     }
 
     // Keys counter (if any)
     if (inventory.keys > 0) {
-        int keyX = rightX - (inventory.hasBow ? 36 : 0);
+        int keyX = rightX - (inventory.hasBow ? 40 : 0);
         std::string keyStr = "K:" + std::to_string(inventory.keys);
         DrawText(keyStr.c_str(), keyX + 1, slotY + 5, 8, Color{11, 12, 16, 255});
         DrawText(keyStr.c_str(), keyX, slotY + 4, 8, Color{250, 204, 21, 255});
